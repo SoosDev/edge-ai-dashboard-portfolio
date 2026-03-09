@@ -1,841 +1,729 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Edge AI Analytics Dashboard — Portfolio</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: #0a0c0f;
-      --surface: #111418;
-      --surface2: #181c22;
-      --border: rgba(255,255,255,0.07);
-      --accent: #00e5a0;
-      --accent2: #0077ff;
-      --accent3: #ff6b35;
-      --text: #e8eaed;
-      --muted: #7a8494;
-      --mono: 'IBM Plex Mono', monospace;
-      --serif: 'DM Serif Display', serif;
-      --sans: 'DM Sans', 'Noto Sans JP', sans-serif;
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Edge AI Analytics — Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300;0,7..72,400;0,7..72,500;1,7..72,400&family=Noto+Sans+JP:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+/* ── TOKENS ─────────────────────────────────── */
+:root {
+  --bg:        #1a1a1a;
+  --bg-raised: #262626;
+  --bg-inset:  #161616;
+  --border:    rgba(255,255,255,0.14);
+  --border2:   rgba(255,255,255,0.22);
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+  /* text hierarchy — all high-contrast */
+  --t1: #f5f2ed;   /* headings */
+  --t2: #dedad4;   /* body */
+  --t3: #b0aba4;   /* captions, labels */
+  --t4: #807c76;   /* very secondary */
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 16px;
-      line-height: 1.7;
-      overflow-x: hidden;
-    }
+  --accent:  #c8a97a;   /* warm gold */
+  --accent2: #7ab8a0;   /* teal */
+  --red:     #c47a6a;
 
-    /* LANG TOGGLE */
-    #lang-bar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      justify-content: flex-end;
-      padding: 12px 32px;
-      background: rgba(10,12,15,0.88);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-    }
-    .lang-btn {
-      font-family: var(--mono);
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      padding: 6px 16px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .lang-btn:first-child { border-radius: 4px 0 0 4px; }
-    .lang-btn:last-child  { border-radius: 0 4px 4px 0; border-left: none; }
-    .lang-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
-    .lang-btn:hover:not(.active) { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  --serif: 'Literata', Georgia, serif;
+  --sans:  'Noto Sans JP', sans-serif;
+  --mono:  'JetBrains Mono', 'Courier New', monospace;
 
-    [data-en], [data-ja] { display: none; }
-    body.lang-en [data-en] { display: block; }
-    body.lang-en span[data-en] { display: inline; }
-    body.lang-en td[data-en], body.lang-en th[data-en] { display: table-cell; }
-    body.lang-ja [data-ja] { display: block; }
-    body.lang-ja span[data-ja] { display: inline; }
-    body.lang-ja td[data-ja], body.lang-ja th[data-ja] { display: table-cell; }
+  --max: 860px;
+}
 
-    /* HERO */
-    #hero {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 120px 6vw 80px;
-      position: relative;
-      overflow: hidden;
-    }
-    .grid-bg {
-      position: absolute; inset: 0;
-      background-image:
-        linear-gradient(rgba(0,229,160,0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,229,160,0.035) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 100%);
-    }
-    .hero-label {
-      font-family: var(--mono); font-size: 11px;
-      letter-spacing: 0.2em; text-transform: uppercase;
-      color: var(--accent); margin-bottom: 24px;
-      opacity: 0; animation: fadeUp 0.6s 0.1s forwards;
-    }
-    .hero-title {
-      font-family: var(--serif);
-      font-size: clamp(2.8rem, 7vw, 6rem);
-      line-height: 1.08; letter-spacing: -0.02em; max-width: 820px;
-      opacity: 0; animation: fadeUp 0.7s 0.2s forwards;
-    }
-    .hero-title em { font-style: italic; color: var(--accent); }
-    .hero-sub {
-      margin-top: 28px; font-size: 1.05rem; color: var(--muted);
-      max-width: 620px; font-weight: 300;
-      opacity: 0; animation: fadeUp 0.7s 0.35s forwards;
-    }
-    .hero-badges {
-      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px;
-      opacity: 0; animation: fadeUp 0.7s 0.5s forwards;
-    }
-    .badge {
-      font-family: var(--mono); font-size: 11px;
-      padding: 5px 12px; border-radius: 3px; border: 1px solid; letter-spacing: 0.06em;
-    }
-    .badge-green  { color: var(--accent);  border-color: rgba(0,229,160,0.3);  background: rgba(0,229,160,0.06); }
-    .badge-blue   { color: #60aaff;        border-color: rgba(0,119,255,0.3);  background: rgba(0,119,255,0.06); }
-    .badge-orange { color: #ff9060;        border-color: rgba(255,107,53,0.3); background: rgba(255,107,53,0.06); }
-    .badge-purple { color: #c084fc;        border-color: rgba(192,132,252,0.3);background: rgba(192,132,252,0.06); }
-    .hero-scroll {
-      margin-top: 64px; display: flex; align-items: center; gap: 12px;
-      opacity: 0; animation: fadeUp 0.7s 0.7s forwards;
-    }
-    .hero-scroll-line { width: 40px; height: 1px; background: var(--muted); }
-    .hero-scroll span {
-      font-family: var(--mono); font-size: 10px; color: var(--muted);
-      letter-spacing: 0.15em; text-transform: uppercase;
-    }
+/* ── RESET ──────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
-    /* SECTIONS */
-    section { padding: 88px 6vw; max-width: 1100px; margin: 0 auto; }
-    .section-label {
-      font-family: var(--mono); font-size: 10px;
-      letter-spacing: 0.25em; text-transform: uppercase;
-      color: var(--accent); margin-bottom: 16px;
-    }
-    .section-title {
-      font-family: var(--serif);
-      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
-      line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 40px;
-    }
-    .section-desc { color: var(--muted); font-size: .9rem; margin-bottom: 28px; max-width: 720px; }
+body {
+  background: var(--bg);
+  color: var(--t2);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.85;
+  font-weight: 400;
+  overflow-x: hidden;
+}
 
-    /* TWO COL */
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 32px; position: relative; overflow: hidden;
-    }
-    .card::before { content:''; position:absolute; top:0;left:0;right:0; height:2px; }
-    .card.green::before { background: linear-gradient(90deg, var(--accent), transparent); }
-    .card.blue::before  { background: linear-gradient(90deg, var(--accent2), transparent); }
-    .card h3 { font-family: var(--serif); font-size: 1.25rem; margin-bottom: 12px; }
-    .card p  { font-size: 0.88rem; color: var(--muted); line-height: 1.75; }
+/* ── LANG TOGGLE ────────────────────────────── */
+#lang-bar {
+  position: fixed; top: 0; right: 0; z-index: 100;
+  padding: 18px 32px;
+  display: flex; gap: 0;
+}
+.lb {
+  font-family: var(--mono); font-size: 13px;
+  letter-spacing: 0.1em; padding: 6px 16px;
+  border: 1px solid var(--border2);
+  background: rgba(20,20,20,0.9);
+  color: var(--t3); cursor: pointer;
+  transition: all 0.2s;
+}
+.lb:first-child { border-radius: 4px 0 0 4px; }
+.lb:last-child  { border-radius: 0 4px 4px 0; border-left: none; }
+.lb.on { background: var(--accent); color: #1a1400; border-color: var(--accent); font-weight: 400; }
+.lb:hover:not(.on) { color: var(--t1); border-color: var(--border2); }
 
-    /* CODE BLOCKS */
-    .code-block {
-      background: #0d1117;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 6px; overflow-x: auto; margin-top: 20px;
-    }
-    .code-block + .code-block { margin-top: 14px; }
-    .code-block-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      background: rgba(255,255,255,0.02);
-    }
-    .code-block-filename { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-    .code-block-lang { font-family: var(--mono); font-size: 10px; color: rgba(0,229,160,0.6); letter-spacing: 0.1em; text-transform: uppercase; }
-    .code-block pre {
-      padding: 20px; font-family: var(--mono); font-size: 12.5px;
-      line-height: 1.75; color: #c9d1d9; white-space: pre; tab-size: 2;
-    }
-    .kw  { color: #ff79c6; }
-    .fn  { color: #82aaff; }
-    .str { color: #a8ff78; }
-    .cm  { color: #5c6470; font-style: italic; }
-    .tp  { color: #ffcb6b; }
-    .nu  { color: #f78c6c; }
-    .kv  { color: #c792ea; }
+/* ── LANG VISIBILITY ────────────────────────── */
+[data-en], [data-ja] { display: none; }
+body.lang-en [data-en]  { display: block; }
+body.lang-en span[data-en], body.lang-en td[data-en], body.lang-en th[data-en] { display: revert; }
+body.lang-ja [data-ja]  { display: block; }
+body.lang-ja span[data-ja], body.lang-ja td[data-ja], body.lang-ja th[data-ja] { display: revert; }
 
-    /* ARCH DIAGRAM */
-    .arch-diagram {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 36px 28px; overflow-x: auto;
-    }
-    .arch-rows { display: flex; flex-direction: column; gap: 24px; }
-    .arch-row-label {
-      font-family: var(--mono); font-size: 10px;
-      letter-spacing: 0.15em; color: var(--muted);
-      text-transform: uppercase; margin-bottom: 10px;
-    }
-    .arch-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 0; row-gap: 12px; }
-    .arch-node {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 6px; padding: 9px 16px;
-      font-family: var(--mono); font-size: 11px;
-      text-align: center; min-width: 116px; line-height: 1.5;
-    }
-    .arch-node .node-label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
-    .arch-node .node-name  { color: var(--text); font-weight: 500; }
-    .arch-node.hl .node-name { color: var(--accent); }
-    .arch-node.hl { border-color: rgba(0,229,160,0.3); }
-    .arch-arrow { font-size: 16px; color: var(--muted); padding: 0 5px; }
+/* ── LAYOUT ─────────────────────────────────── */
+.wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 32px;
+}
 
-    /* TECH GRID */
-    .tech-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 1px; background: var(--border);
-      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
-    }
-    .tech-item { background: var(--surface); padding: 22px; transition: background 0.2s; }
-    .tech-item:hover { background: var(--surface2); }
-    .tech-category { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin-bottom: 7px; }
-    .tech-name   { font-size: 0.93rem; font-weight: 500; margin-bottom: 4px; }
-    .tech-detail { font-size: 0.78rem; color: var(--muted); }
+/* ── HERO ───────────────────────────────────── */
+#hero {
+  padding: 120px 32px 96px;
+  max-width: var(--max);
+  margin: 0 auto;
+  border-bottom: 1px solid var(--border);
+}
 
-    /* FEATURES GRID */
-    .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-    .feature-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 26px 22px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-    .feature-card:hover { border-color: rgba(0,229,160,0.22); transform: translateY(-2px); }
-    .feature-num { font-family: var(--mono); font-size: 10px; color: var(--accent); margin-bottom: 10px; }
-    .feature-card h4 { font-size: 0.92rem; font-weight: 500; margin-bottom: 7px; }
-    .feature-card p  { font-size: 0.8rem; color: var(--muted); line-height: 1.7; }
+.hero-eyebrow {
+  font-family: var(--mono); font-size: 14px;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--t3); margin-bottom: 28px;
+}
 
-    /* CHALLENGES */
-    .challenges-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-    .challenge-item { display: grid; grid-template-columns: 1fr 2fr; border-bottom: 1px solid var(--border); }
-    .challenge-item:last-child { border-bottom: none; }
-    .challenge-problem { background: var(--surface); padding: 28px 24px; border-right: 1px solid var(--border); }
-    .ch-num { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; color: var(--accent3); text-transform: uppercase; margin-bottom: 10px; }
-    .challenge-problem h4 { font-size: 0.92rem; font-weight: 500; margin-bottom: 8px; }
-    .challenge-problem p  { font-size: 0.8rem; color: var(--muted); line-height: 1.7; }
-    .challenge-solution { background: var(--surface2); padding: 28px 24px; }
-    .sol-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
-    .challenge-solution p { font-size: 0.83rem; color: var(--muted); line-height: 1.75; }
-    .challenge-solution strong { color: var(--text); font-weight: 500; }
+.hero-h1 {
+  font-family: var(--serif);
+  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-weight: 400; line-height: 1.15;
+  color: var(--t1); letter-spacing: -0.01em;
+  margin-bottom: 28px;
+}
 
-    /* SECURITY */
-    .security-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .security-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
-    .sec-title { font-size: 0.88rem; font-weight: 500; margin-bottom: 6px; }
-    .security-item p { font-size: 0.79rem; color: var(--muted); line-height: 1.65; }
-    .ic { font-family: var(--mono); font-size: .8rem; color: var(--accent); }
+.hero-lead {
+  font-size: 18px; line-height: 1.85;
+  color: var(--t2); max-width: 680px;
+  margin-bottom: 40px;
+}
 
-    /* INFRA TABLE */
-    .infra-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-size: 0.86rem; }
-    .infra-table th { background: var(--surface2); color: var(--muted); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.15em; text-transform: uppercase; padding: 13px 18px; text-align: left; border-bottom: 1px solid var(--border); }
-    .infra-table td { padding: 13px 18px; border-bottom: 1px solid var(--border); background: var(--surface); }
-    .infra-table tr:last-child td { border-bottom: none; }
-    .infra-table td:nth-child(1) { color: var(--muted); font-family: var(--mono); font-size: 11px; }
-    .infra-table td:nth-child(2) { color: var(--accent); font-family: var(--mono); font-size: 11.5px; }
-    .infra-table td:nth-child(3) { color: var(--muted); font-size: 0.8rem; }
+.pill-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.pill {
+  font-family: var(--mono); font-size: 13px;
+  padding: 5px 13px; border-radius: 100px;
+  border: 1px solid var(--border2);
+  color: var(--t2); letter-spacing: 0.04em;
+  background: var(--bg-raised);
+}
 
-    /* DECISIONS */
-    .decisions-list { display: flex; flex-direction: column; gap: 14px; }
-    .decision-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 22px; }
-    .decision-item h4 { font-size: 0.9rem; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
-    .decision-item h4::before { content: '/'; font-family: var(--mono); color: var(--accent); font-size: 14px; }
-    .decision-item p { font-size: 0.82rem; color: var(--muted); line-height: 1.75; padding-left: 22px; }
+/* ── SECTION ────────────────────────────────── */
+.sec {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 72px 32px;
+  border-bottom: 1px solid var(--border);
+}
 
-    /* DIVIDER / FOOTER */
-    .divider { border: none; border-top: 1px solid var(--border); margin: 0 6vw; }
-    footer { border-top: 1px solid var(--border); padding: 36px 6vw; display: flex; justify-content: space-between; align-items: center; max-width: 1100px; margin: 0 auto; }
-    footer p { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-    footer a { color: var(--accent); text-decoration: none; font-family: var(--mono); font-size: 11px; }
-    footer a:hover { text-decoration: underline; }
+.sec-label {
+  font-family: var(--mono); font-size: 13px;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 10px;
+}
 
-    /* ANIMATIONS */
-    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-    .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s ease; }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
+.sec-h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 400; color: var(--t1);
+  line-height: 1.25; margin-bottom: 28px;
+}
 
-    /* RESPONSIVE */
-    @media (max-width: 768px) {
-      .two-col { grid-template-columns: 1fr; }
-      .challenge-item { grid-template-columns: 1fr; }
-      .challenge-problem { border-right: none; border-bottom: 1px solid var(--border); }
-      .security-grid { grid-template-columns: 1fr; }
-      footer { flex-direction: column; gap: 10px; text-align: center; }
-    }
-  </style>
+.prose {
+  font-size: 17px; color: var(--t2);
+  line-height: 1.9; margin-bottom: 20px;
+  max-width: 720px;
+}
+.prose:last-child { margin-bottom: 0; }
+
+/* ── DIAGRAM ────────────────────────────────── */
+#diagram-wrap {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 0;
+}
+
+#diag {
+  width: 100%; min-width: 700px;
+  height: 520px; display: block;
+}
+
+.dn rect {
+  fill: var(--bg-raised); stroke: var(--border2);
+  stroke-width: 1; rx: 4;
+  transition: stroke 0.25s, fill 0.25s;
+  cursor: pointer;
+}
+.dn:hover rect, .dn.act rect {
+  stroke: var(--accent); fill: rgba(200,169,122,0.07);
+}
+.dn-cat {
+  font-family: var(--mono); font-size: 10.5px;
+  fill: var(--t3); letter-spacing: 0.12em;
+  pointer-events: none; transition: fill 0.25s;
+}
+.dn-name {
+  font-family: var(--mono); font-size: 13px;
+  fill: #dedad4; font-weight: 400;
+  pointer-events: none; transition: fill 0.25s;
+}
+.dn:hover .dn-cat, .dn.act .dn-cat { fill: rgba(200,169,122,0.7); }
+.dn:hover .dn-name, .dn.act .dn-name { fill: var(--accent); }
+
+.de {
+  fill: none; stroke: rgba(255,255,255,0.20);
+  stroke-width: 1; transition: stroke 0.25s;
+}
+.de.act { stroke: var(--accent2); stroke-width: 1.5; }
+
+.darr { fill: rgba(255,255,255,0.22); transition: fill 0.25s; }
+.darr.act { fill: var(--accent2); }
+
+.drl {
+  font-family: var(--mono); font-size: 11px;
+  fill: var(--t3); letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#detail-bar {
+  border-top: 1px solid var(--border);
+  padding: 20px 24px;
+  min-height: 80px;
+  display: flex; align-items: flex-start; gap: 24px;
+  opacity: 0; transition: opacity 0.3s;
+}
+#detail-bar.show { opacity: 1; }
+#detail-name {
+  font-family: var(--mono); font-size: 14px;
+  color: var(--accent); white-space: nowrap;
+  padding-top: 2px; min-width: 160px;
+}
+#detail-text {
+  font-size: 16px; color: var(--t2); line-height: 1.8;
+}
+
+/* ── CODE ───────────────────────────────────── */
+.code-block {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden;
+  margin-top: 24px;
+}
+.code-top {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.code-file { font-family: var(--mono); font-size: 13px; color: var(--t2); }
+.code-lang { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 0.1em; }
+.code-block pre {
+  padding: 22px; font-family: var(--mono);
+  font-size: 14px; line-height: 1.85;
+  color: #d8d4cc; overflow-x: auto;
+  tab-size: 2;
+}
+.kw { color: #c08060; }
+.fn { color: #80a898; }
+.st { color: #88a070; }
+.cm { color: var(--t4); font-style: italic; }
+.tp { color: #b09858; }
+.nu { color: #b07860; }
+
+/* ── FEATURE LIST ───────────────────────────── */
+.feat-list { border-top: 1px solid var(--border); }
+.feat {
+  display: grid; grid-template-columns: 44px 1fr 1fr;
+  gap: 24px; padding: 22px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+}
+.feat-n { font-family: var(--mono); font-size: 13px; color: var(--t3); padding-top: 3px; }
+.feat-t { font-size: 17px; color: var(--t1); font-weight: 500; }
+.feat-d { font-size: 16px; color: var(--t2); line-height: 1.8; }
+
+/* ── INFRA TABLE ────────────────────────────── */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  font-family: var(--mono); font-size: 13px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--t3); padding: 12px 16px;
+  text-align: left; border-bottom: 1px solid var(--border2);
+}
+.tbl td {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  font-size: 15px; vertical-align: top;
+}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl td:nth-child(1) { font-family: var(--mono); font-size: 13px; color: var(--t2); white-space: nowrap; }
+.tbl td:nth-child(2) { font-family: var(--mono); font-size: 14px; color: var(--accent); white-space: nowrap; }
+.tbl td:nth-child(3) { color: var(--t2); font-size: 15px; }
+
+/* ── DECISIONS ──────────────────────────────── */
+.dec-list { border-top: 1px solid var(--border); }
+.dec {
+  padding: 28px 0; border-bottom: 1px solid var(--border);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+}
+.dec-q { font-size: 17px; color: var(--t1); font-weight: 500; line-height: 1.5; }
+.dec-a { font-size: 16px; color: var(--t2); line-height: 1.85; }
+
+/* ── FOOTER ─────────────────────────────────── */
+footer {
+  max-width: var(--max); margin: 0 auto;
+  padding: 48px 32px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+footer p { font-size: 14px; color: var(--t3); font-family: var(--mono); }
+footer a { font-size: 14px; color: var(--accent); font-family: var(--mono); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── REVEAL ─────────────────────────────────── */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.reveal.on { opacity: 1; transform: none; }
+
+/* ── RESPONSIVE ─────────────────────────────── */
+@media (max-width: 680px) {
+  #hero { padding: 96px 20px 64px; }
+  .sec  { padding: 56px 20px; }
+  .wrap { padding: 0 20px; }
+  .feat { grid-template-columns: 36px 1fr; }
+  .feat-d { display: none; }
+  .dec  { grid-template-columns: 1fr; gap: 12px; }
+  footer { flex-direction: column; gap: 10px; padding: 40px 20px; }
+  #lang-bar { padding: 14px 20px; }
+}
+</style>
 </head>
-<body class="lang-en">
+<body class="lang-ja">
 
 <div id="lang-bar">
-  <button class="lang-btn active" onclick="setLang('en')">EN</button>
-  <button class="lang-btn" onclick="setLang('ja')">日本語</button>
+  <button class="lb" onclick="setLang('en')">EN</button>
+  <button class="lb on" onclick="setLang('ja')">日本語</button>
 </div>
 
-<!-- ══════════ HERO ══════════ -->
-<div id="hero">
-  <div class="grid-bg"></div>
-  <p class="hero-label">
-    <span data-en>Full-Stack SaaS · B2B · 2025–2026</span>
-    <span data-ja>フルスタック SaaS · B2B · 2025–2026</span>
+<!-- ══ HERO ══ -->
+<section id="hero">
+  <p class="hero-eyebrow">
+    <span data-en>Portfolio · Full-Stack SaaS · 2026</span>
+    <span data-ja>ポートフォリオ · フルスタック SaaS · 2026</span>
   </p>
-  <h1 class="hero-title">
-    <span data-en>Edge AI <em>Analytics</em><br>Dashboard</span>
-    <span data-ja>エッジAI <em>分析</em><br>ダッシュボード</span>
+  <h1 class="hero-h1">
+    <span data-en>Edge AI Analytics<br>Dashboard</span>
+    <span data-ja>エッジAI分析<br>ダッシュボード</span>
   </h1>
-  <p class="hero-sub">
-    <span data-en>A B2B SaaS platform that processes raw output from AI-equipped billboard cameras into a structured analytics interface — covering data ingestion, multi-tenant security, subscription billing, and realtime streaming.</span>
-    <span data-ja>AIカメラの生データを構造化された分析インターフェースに変換するB2B SaaSプラットフォーム。データ取込・マルチテナントセキュリティ・サブスクリプション課金・リアルタイムストリーミングを網羅。</span>
+  <p class="hero-lead" data-en>
+    A B2B SaaS platform that processes raw output from AI-equipped billboard cameras into a structured analytics interface — covering data ingestion, multi-tenant security, subscription billing, and realtime streaming.
   </p>
-  <div class="hero-badges">
-    <span class="badge badge-green">Next.js 15 · App Router</span>
-    <span class="badge badge-green">TypeScript Strict</span>
-    <span class="badge badge-blue">AWS App Runner</span>
-    <span class="badge badge-blue">AWS RDS PostgreSQL 16</span>
-    <span class="badge badge-blue">AWS SES v2</span>
-    <span class="badge badge-orange">Stripe</span>
-    <span class="badge badge-orange">SSE Realtime</span>
-    <span class="badge badge-purple">JWT · RLS · bcrypt</span>
+  <p class="hero-lead" data-ja>
+    AIカメラの生データを構造化された分析インターフェースに変換するB2B SaaSプラットフォーム。データ取込・マルチテナントセキュリティ・サブスクリプション課金・リアルタイムストリーミングを網羅。
+  </p>
+  <div class="pill-row">
+    <span class="pill">Next.js 15</span>
+    <span class="pill">TypeScript</span>
+    <span class="pill">PostgreSQL 16</span>
+    <span class="pill">AWS App Runner</span>
+    <span class="pill">AWS RDS</span>
+    <span class="pill">AWS SES v2</span>
+    <span class="pill">Stripe</span>
+    <span class="pill">SSE Realtime</span>
+    <span class="pill">JWT · RLS · bcrypt</span>
   </div>
-  <div class="hero-scroll">
-    <div class="hero-scroll-line"></div>
-    <span data-en>scroll to explore</span>
-    <span data-ja>スクロールして詳細へ</span>
-  </div>
-</div>
+</section>
 
-<!-- ══════════ 01 · CONTEXT ══════════ -->
-<hr class="divider" />
-<section class="reveal">
-  <p class="section-label"><span data-en>01 · Context</span><span data-ja>01 · 背景</span></p>
-  <h2 class="section-title"><span data-en>Problem and Solution</span><span data-ja>課題と解決策</span></h2>
-  <div class="two-col">
-    <div class="card green">
-      <h3 data-en>The Problem</h3><h3 data-ja>課題</h3>
-      <p data-en>The client sells billboard cameras with onboard edge AI that records visitor age, gender, and emotion per detection. All data was stored locally in proprietary DAT files on the device — with no pipeline to surface it for analysis.</p>
-      <p data-ja>クライアントは来客の年齢・性別・感情を検出するエッジAI搭載の看板カメラを販売している。収集されたデータはすべて独自DATファイルとしてデバイスにローカル保存されており、分析に活用する手段がなかった。</p>
-    </div>
-    <div class="card blue">
-      <h3 data-en>The Solution</h3><h3 data-ja>解決策</h3>
-      <p data-en>A full SaaS platform covering the entire lifecycle: file ingestion and parsing, a multi-tenant PostgreSQL database, a chart dashboard, PDF and CSV exports, session comparison, Stripe subscription tiers, automated email reports, and an SSE realtime preview for live camera data.</p>
-      <p data-ja>ファイル取込・パース、マルチテナントPostgreSQLデータベース、チャートダッシュボード、PDF/CSVエクスポート、セッション比較、Stripeサブスクリプション、定期メールレポート、そしてSSEリアルタイムプレビューまでを網羅したフルSaaSプラットフォーム。</p>
+<!-- ══ CONTEXT ══ -->
+<section class="sec reveal">
+  <p class="sec-label">01 · <span data-en>Context</span><span data-ja>背景</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Problem and Solution</span>
+    <span data-ja>課題と解決策</span>
+  </h2>
+  <p class="prose" data-en>
+    The client sells billboard cameras with onboard edge AI that records visitor age, gender, and emotion per detection. All data was stored locally in proprietary DAT files on the device, with no pipeline to surface it for analysis.
+  </p>
+  <p class="prose" data-ja>
+    クライアントは来客の年齢・性別・感情を検出するエッジAI搭載の看板カメラを販売している。収集されたデータはすべて独自DATファイルとしてデバイスにローカル保存されており、分析に活用する手段がなかった。
+  </p>
+  <p class="prose" data-en>
+    A full SaaS platform was designed and built to cover the entire product lifecycle: file ingestion and parsing, a multi-tenant PostgreSQL database, a chart dashboard, PDF and CSV exports, session comparison, Stripe subscription tiers, automated email reports, and an SSE realtime preview for live camera data.
+  </p>
+  <p class="prose" data-ja>
+    ファイル取込・パースからマルチテナントPostgreSQLデータベース、チャートダッシュボード、PDF/CSVエクスポート、セッション比較、Stripeサブスクリプション、定期メールレポート、SSEリアルタイムプレビューまでを網羅したフルSaaSプラットフォームを設計・構築した。
+  </p>
+</section>
+
+<!-- ══ DIAGRAM ══ -->
+<section class="sec reveal">
+  <p class="sec-label">02 · <span data-en>Architecture</span><span data-ja>アーキテクチャ</span></p>
+  <h2 class="sec-h2">
+    <span data-en>System Design</span>
+    <span data-ja>システム設計</span>
+  </h2>
+  <p class="prose" data-en>Hover any node to see what it does.</p>
+  <p class="prose" data-ja>各ノードにカーソルを合わせると詳細が表示されます。</p>
+
+  <div id="diagram-wrap">
+    <svg id="diag" viewBox="0 0 900 500" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 Z" class="darr" id="arrpath"/>
+        </marker>
+      </defs>
+
+      <!-- row labels -->
+      <text x="16" y="92"  class="drl" data-en-t="Manual Upload"   data-ja-t="手動アップロード">手動アップロード</text>
+      <text x="16" y="202" class="drl" data-en-t="Auto Push"       data-ja-t="自動プッシュ">自動プッシュ</text>
+      <text x="16" y="312" class="drl" data-en-t="Analytics Query" data-ja-t="分析クエリ">分析クエリ</text>
+      <text x="16" y="422" class="drl" data-en-t="Realtime SSE"    data-ja-t="リアルタイムSSE">リアルタイムSSE</text>
+
+      <!-- edges row 1 -->
+      <path class="de" d="M272,108 L312,108" marker-end="url(#arr)"/>
+      <path class="de" d="M472,108 L512,108" marker-end="url(#arr)"/>
+      <path class="de" d="M672,108 L712,108" marker-end="url(#arr)"/>
+      <!-- edges row 2 -->
+      <path class="de" d="M272,218 L312,218" marker-end="url(#arr)"/>
+      <path class="de" d="M472,218 L512,218" marker-end="url(#arr)"/>
+      <path class="de" d="M672,218 L712,218" marker-end="url(#arr)"/>
+      <path class="de" d="M812,218 C 840,218 840,108 872,108" marker-end="url(#arr)" stroke-dasharray="4,3"/>
+      <!-- edges row 3 -->
+      <path class="de" d="M272,328 L312,328" marker-end="url(#arr)"/>
+      <path class="de" d="M472,328 L512,328" marker-end="url(#arr)"/>
+      <path class="de" d="M672,328 L712,328" marker-end="url(#arr)"/>
+      <path class="de" d="M762,130 C 762,229 612,229 612,306" marker-end="url(#arr)" stroke-dasharray="4,3"/>
+      <!-- edges row 4 -->
+      <path class="de" d="M272,438 L312,438" marker-end="url(#arr)"/>
+      <path class="de" d="M472,438 C 492,438 492,218 512,218" marker-end="url(#arr)" stroke-dasharray="4,3"/>
+      <path class="de" d="M762,240 C 762,418 672,418 672,416" marker-end="url(#arr)"/>
+
+      <!-- ROW 1 -->
+      <g class="dn" data-id="browser-upload">
+        <rect x="130" y="88" width="142" height="40"/>
+        <text x="201" y="104" text-anchor="middle" class="dn-cat" data-en-t="Client" data-ja-t="クライアント">クライアント</text>
+        <text x="201" y="120" text-anchor="middle" class="dn-name">Browser Upload</text>
+      </g>
+      <g class="dn" data-id="api-upload">
+        <rect x="312" y="88" width="160" height="40"/>
+        <text x="392" y="104" text-anchor="middle" class="dn-cat">API</text>
+        <text x="392" y="120" text-anchor="middle" class="dn-name">POST /api/upload</text>
+      </g>
+      <g class="dn" data-id="parser">
+        <rect x="512" y="88" width="160" height="40"/>
+        <text x="592" y="104" text-anchor="middle" class="dn-cat" data-en-t="Parser" data-ja-t="パーサー">パーサー</text>
+        <text x="592" y="120" text-anchor="middle" class="dn-name">parseRawLine()</text>
+      </g>
+      <g class="dn" data-id="rds">
+        <rect x="712" y="88" width="160" height="40"/>
+        <text x="792" y="104" text-anchor="middle" class="dn-cat">RDS PostgreSQL</text>
+        <text x="792" y="120" text-anchor="middle" class="dn-name">raw_records + RLS</text>
+      </g>
+
+      <!-- ROW 2 -->
+      <g class="dn" data-id="box-agent">
+        <rect x="130" y="198" width="142" height="40"/>
+        <text x="201" y="214" text-anchor="middle" class="dn-cat" data-en-t="Box PC Agent" data-ja-t="エージェント">エージェント</text>
+        <text x="201" y="230" text-anchor="middle" class="dn-name">push-data.py</text>
+      </g>
+      <g class="dn" data-id="api-auto">
+        <rect x="312" y="198" width="160" height="40"/>
+        <text x="392" y="214" text-anchor="middle" class="dn-cat">API (Bearer)</text>
+        <text x="392" y="230" text-anchor="middle" class="dn-name">POST /auto-upload</text>
+      </g>
+      <g class="dn" data-id="snapshot">
+        <rect x="512" y="198" width="160" height="40"/>
+        <text x="592" y="214" text-anchor="middle" class="dn-cat" data-en-t="Snapshot" data-ja-t="スナップショット">スナップショット</text>
+        <text x="592" y="230" text-anchor="middle" class="dn-name">buildSnapshot()</text>
+      </g>
+      <g class="dn" data-id="memstore">
+        <rect x="712" y="198" width="160" height="40"/>
+        <text x="792" y="214" text-anchor="middle" class="dn-cat" data-en-t="Memory Store" data-ja-t="インメモリ">インメモリ</text>
+        <text x="792" y="230" text-anchor="middle" class="dn-name">Map&lt;id, snapshot&gt;</text>
+      </g>
+
+      <!-- ROW 3 -->
+      <g class="dn" data-id="dashboard">
+        <rect x="130" y="308" width="142" height="40"/>
+        <text x="201" y="324" text-anchor="middle" class="dn-cat" data-en-t="Browser" data-ja-t="ブラウザ">ブラウザ</text>
+        <text x="201" y="340" text-anchor="middle" class="dn-name">Dashboard</text>
+      </g>
+      <g class="dn" data-id="api-dash">
+        <rect x="312" y="308" width="160" height="40"/>
+        <text x="392" y="324" text-anchor="middle" class="dn-cat">API</text>
+        <text x="392" y="340" text-anchor="middle" class="dn-name">GET /dashboard-data</text>
+      </g>
+      <g class="dn" data-id="processor">
+        <rect x="512" y="308" width="160" height="40"/>
+        <text x="592" y="324" text-anchor="middle" class="dn-cat" data-en-t="Aggregators" data-ja-t="集計関数">集計関数</text>
+        <text x="592" y="340" text-anchor="middle" class="dn-name">dataProcessor.ts</text>
+      </g>
+      <g class="dn" data-id="recharts">
+        <rect x="712" y="308" width="160" height="40"/>
+        <text x="792" y="324" text-anchor="middle" class="dn-cat" data-en-t="Charts + Export" data-ja-t="チャート+エクスポート">チャート+エクスポート</text>
+        <text x="792" y="340" text-anchor="middle" class="dn-name">Recharts / PDF / CSV</text>
+      </g>
+
+      <!-- ROW 4 -->
+      <g class="dn" data-id="device">
+        <rect x="130" y="418" width="142" height="40"/>
+        <text x="201" y="434" text-anchor="middle" class="dn-cat" data-en-t="Device" data-ja-t="機器">機器</text>
+        <text x="201" y="450" text-anchor="middle" class="dn-name">POST /realtime/push</text>
+      </g>
+      <g class="dn" data-id="sse-store">
+        <rect x="312" y="418" width="160" height="40"/>
+        <text x="392" y="434" text-anchor="middle" class="dn-cat" data-en-t="Memory" data-ja-t="インメモリ">インメモリ</text>
+        <text x="392" y="450" text-anchor="middle" class="dn-name">KPI Snapshot Store</text>
+      </g>
+      <g class="dn" data-id="sse-stream">
+        <rect x="512" y="418" width="160" height="40"/>
+        <text x="592" y="434" text-anchor="middle" class="dn-cat">SSE</text>
+        <text x="592" y="450" text-anchor="middle" class="dn-name">GET /realtime/stream</text>
+      </g>
+      <g class="dn" data-id="sse-browser">
+        <rect x="712" y="418" width="160" height="40"/>
+        <text x="792" y="434" text-anchor="middle" class="dn-cat" data-en-t="Browser (Pro)" data-ja-t="ブラウザ (Pro)">ブラウザ (Pro)</text>
+        <text x="792" y="450" text-anchor="middle" class="dn-name">EventSource</text>
+      </g>
+    </svg>
+
+    <div id="detail-bar">
+      <div id="detail-name">—</div>
+      <div id="detail-text"></div>
     </div>
   </div>
 </section>
 
-<!-- ══════════ 02 · FEATURES ══════════ -->
-<hr class="divider" />
-<section class="reveal">
-  <p class="section-label"><span data-en>02 · Features</span><span data-ja>02 · 機能一覧</span></p>
-  <h2 class="section-title"><span data-en>Platform Capabilities</span><span data-ja>プラットフォームの主要機能</span></h2>
-  <div class="features-grid">
-    <div class="feature-card">
-      <p class="feature-num">F-01</p>
-      <h4 data-en>Visitor Analytics Dashboard</h4><h4 data-ja>来客分析ダッシュボード</h4>
-      <p data-en>Time-of-day profiles, age distribution, gender ratio, and emotion trends — pre-aggregated server-side and rendered via Recharts. No client-side re-computation.</p>
-      <p data-ja>時間帯プロフィール・年齢分布・性別比率・感情トレンドをサーバーサイドで集計しRechartsで描画。クライアント側での再集計は不要。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-02</p>
-      <h4 data-en>KPI Cards with Trend Indicators</h4><h4 data-ja>KPIカードとトレンド表示</h4>
-      <p data-en>Visitor count, satisfaction score, peak hour, and top age group — each with week-over-week and month-over-month comparison calculations.</p>
-      <p data-ja>来客数・満足度・ピーク時間帯・上位年齢層を前週比・前月比のトレンド矢印付きで表示。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-03</p>
-      <h4 data-en>Realtime Live Preview (Pro)</h4><h4 data-ja>リアルタイムプレビュー（Proプラン）</h4>
-      <p data-en>Hardware pushes records to a Bearer-authenticated endpoint. An SSE stream delivers KPI snapshots to the browser without polling or WebSocket infrastructure.</p>
-      <p data-ja>ハードウェアがBearerキー認証エンドポイントにデータをプッシュ。SSEストリームがKPIスナップショットをブラウザに配信。ポーリング・WebSocket不要。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-04</p>
-      <h4 data-en>Session Comparison</h4><h4 data-ja>セッション比較</h4>
-      <p data-en>Side-by-side comparison of any two sessions via a calendar date selector. Applicable for campaign analysis and multi-location benchmarking.</p>
-      <p data-ja>カレンダーUIで任意の2セッションを並列比較。キャンペーン効果測定や拠点間ベンチマークに活用。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-05</p>
-      <h4 data-en>PDF Report Generation</h4><h4 data-ja>PDFレポート出力</h4>
-      <p data-en>Print-optimized A4 two-page reports generated client-side using print CSS media queries. No external library or server-side rendering required.</p>
-      <p data-ja>印刷メディアクエリを使ったA4・2ページPDFをクライアントサイドで生成。外部ライブラリ・サーバーサイドレンダリング不要。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-06</p>
-      <h4 data-en>CSV Export</h4><h4 data-ja>CSVエクスポート</h4>
-      <p data-en>Aggregated data exported as UTF-8 BOM CSV for Excel compatibility, generated in the browser without a server round-trip.</p>
-      <p data-ja>UTF-8 BOM付きCSVをブラウザで生成。Excel対応。サーバー通信不要。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-07</p>
-      <h4 data-en>Stripe Subscription Billing</h4><h4 data-ja>Stripeサブスクリプション課金</h4>
-      <p data-en>Basic and Pro plans via Stripe Checkout and Webhooks. Plan status is read from the database on every request — Pro features are server-enforced, not just UI-hidden.</p>
-      <p data-ja>Stripe CheckoutとWebhookでBasic/Proプランを管理。Proプランの機能はリクエストごとにDBを確認してサーバーサイドで強制。UIの非表示だけに依存しない。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-08</p>
-      <h4 data-en>Automated Email Reports</h4><h4 data-ja>定期レポートメール自動送信</h4>
-      <p data-en>Weekly and monthly analytics summaries delivered via AWS SES v2, triggered by EventBridge Scheduler cron rules. HTML email templates built in-house.</p>
-      <p data-ja>AWS SES v2 + EventBridge Schedulerで週次・月次集計レポートを自動メール送信。HTMLメールテンプレートは内製。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-09</p>
-      <h4 data-en>Multi-Location Support</h4><h4 data-ja>複数拠点対応</h4>
-      <p data-en>Clients manage multiple billboard locations under one account. Data is isolated per location at the PostgreSQL RLS level.</p>
-      <p data-ja>1アカウントで複数拠点を管理。PostgreSQL RLSにより拠点ごとのデータ分離を保証。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-10</p>
-      <h4 data-en>Duplicate Detection</h4><h4 data-ja>重複検出</h4>
-      <p data-en>Automatic detection of duplicate records on upload prevents double-counting when the same file is submitted more than once.</p>
-      <p data-ja>アップロード時に重複レコードを自動検出。同一ファイルの再送信によるカウント誤りを防止。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-11</p>
-      <h4 data-en>Sales Data Correlation</h4><h4 data-ja>売上データ相関分析</h4>
-      <p data-en>POS-format CSV upload with correlated sales charts, enabling visitor analytics and revenue data to be viewed alongside each other.</p>
-      <p data-ja>POS形式CSVをアップロードし来客分析と売上データを相関グラフで表示。</p>
-    </div>
-    <div class="feature-card">
-      <p class="feature-num">F-12</p>
-      <h4 data-en>Hardware Push Agent</h4><h4 data-ja>ハードウェア連携プッシュエージェント</h4>
-      <p data-en>A Python agent on the billboard box PC watches for new DAT files and automatically pushes them to the ingestion API, eliminating manual uploads.</p>
-      <p data-ja>看板PC上のPythonエージェントが新規DATファイルを監視し自動でAPIにプッシュ。手動アップロードを完全に排除。</p>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════ 03 · ARCHITECTURE ══════════ -->
-<hr class="divider" />
-<section class="reveal">
-  <p class="section-label"><span data-en>03 · Architecture</span><span data-ja>03 · アーキテクチャ</span></p>
-  <h2 class="section-title"><span data-en>System Design</span><span data-ja>システム設計</span></h2>
-  <div class="arch-diagram">
-    <div class="arch-rows">
-      <div>
-        <p class="arch-row-label" data-en>Manual Upload Path</p><p class="arch-row-label" data-ja>手動アップロードパス</p>
-        <div class="arch-flow">
-          <div class="arch-node"><div class="node-label" data-en>Client</div><div class="node-label" data-ja>クライアント</div><div class="node-name">Browser Upload</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node hl"><div class="node-label">API</div><div class="node-name">POST /api/upload</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="node-label" data-en>Parser</div><div class="node-label" data-ja>パーサー</div><div class="node-name">parseRawLine()</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="node-label">RDS</div><div class="node-name">raw_records</div></div>
-        </div>
-      </div>
-      <div>
-        <p class="arch-row-label" data-en>Hardware Auto-Push Path</p><p class="arch-row-label" data-ja>ハードウェア自動プッシュ</p>
-        <div class="arch-flow">
-          <div class="arch-node"><div class="node-label" data-en>Box PC Agent</div><div class="node-label" data-ja>エージェント</div><div class="node-name">push-data.py</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node hl"><div class="node-label">API (Bearer)</div><div class="node-name">POST /api/auto-upload</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="node-label" data-en>Snapshot</div><div class="node-label" data-ja>スナップショット</div><div class="node-name">buildSnapshot()</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="node-label">RDS + Memory</div><div class="node-name">DB + SSE Store</div></div>
-        </div>
-      </div>
-      <div>
-        <p class="arch-row-label" data-en>Analytics Query Path</p><p class="arch-row-label" data-ja>分析クエリパス</p>
-        <div class="arch-flow">
-          <div class="arch-node"><div class="node-label" data-en>Browser</div><div class="node-label" data-ja>ブラウザ</div><div class="node-name">Dashboard Page</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node hl"><div class="node-label">API</div><div class="node-name">GET /api/dashboard-data</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="node-label" data-en>Aggregators</div><div class="node-label" data-ja>集計</div><div class="node-name">dataProcessor.ts</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="node-label" data-en>Charts</div><div class="node-label" data-ja>チャート</div><div class="node-name">Recharts</div></div>
-        </div>
-      </div>
-      <div>
-        <p class="arch-row-label" data-en>Realtime SSE Path (Pro)</p><p class="arch-row-label" data-ja>リアルタイムSSEパス（Pro）</p>
-        <div class="arch-flow">
-          <div class="arch-node"><div class="node-label" data-en>Device</div><div class="node-label" data-ja>機器</div><div class="node-name">POST /realtime/push</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="node-label" data-en>Memory Store</div><div class="node-label" data-ja>インメモリ</div><div class="node-name">Map&lt;id, snapshot&gt;</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node hl"><div class="node-label">SSE</div><div class="node-name">GET /realtime/stream</div></div>
-          <div class="arch-arrow">→</div>
-          <div class="arch-node"><div class="node-label" data-en>Browser</div><div class="node-label" data-ja>ブラウザ</div><div class="node-name">EventSource</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════ 04 · DATA PIPELINE + SNIPPETS ══════════ -->
-<hr class="divider" />
-<section class="reveal">
-  <p class="section-label"><span data-en>04 · Data Pipeline</span><span data-ja>04 · データパイプライン</span></p>
-  <h2 class="section-title"><span data-en>Parser → Normalizer → Aggregator</span><span data-ja>パーサー → 正規化 → 集計</span></h2>
-  <p class="section-desc" data-en>The camera's DAT format outputs five raw emotion rates per detection. The pipeline converts these into three business-meaningful categories before aggregation. Each stage is a pure function with no side effects, making each step independently testable and replaceable.</p>
-  <p class="section-desc" data-ja>カメラのDATフォーマットは1検出あたり5種類の感情率を出力する。パイプラインは集計前にこれらを3つのビジネス的カテゴリに変換する。各ステージは副作用のない純粋関数で構成されており、独立してテスト・置換可能。</p>
+<!-- ══ DATA PIPELINE ══ -->
+<section class="sec reveal">
+  <p class="sec-label">03 · <span data-en>Data Pipeline</span><span data-ja>データパイプライン</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Parser → Normalizer → Aggregator</span>
+    <span data-ja>パーサー → 正規化 → 集計</span>
+  </h2>
+  <p class="prose" data-en>The camera's DAT format outputs five raw emotion rates per detection. A pipeline of pure functions converts these into three business categories before aggregation. Each stage is independently testable and replaceable.</p>
+  <p class="prose" data-ja>カメラのDATフォーマットは1検出あたり5種類の感情率を出力する。純粋関数のパイプラインが集計前にこれらを3つのビジネスカテゴリに変換する。各ステージは独立してテスト・置換可能。</p>
 
   <div class="code-block" data-en>
-    <div class="code-block-header">
-      <span class="code-block-filename">lib/parsers/rawLineParser.ts</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
-    <pre><span class="kw">export function</span> <span class="fn">parseRawLine</span>(line: <span class="tp">string</span>): <span class="tp">RawPersonRecord</span> {
-  <span class="kw">const</span> fields = line.<span class="fn">split</span>(<span class="str">','</span>);
+    <div class="code-top"><span class="code-file">lib/normalizers/emotionNormalizer.ts + lib/services/dataProcessor.ts</span><span class="code-lang">TypeScript</span></div>
+    <pre><span class="cm">// Camera outputs 5 rates. Dashboard uses 3 business categories.</span>
+<span class="cm">// surprise → neutral (not a negative signal)</span>
+<span class="cm">// sad + anger → dissatisfied</span>
+<span class="kw">export function</span> <span class="fn">normalizeEmotion</span>(r: <span class="tp">RawPersonRecord</span>) {
   <span class="kw">return</span> {
-    date:            fields[<span class="nu">0</span>],
-    time:            fields[<span class="nu">1</span>],
-    gender:          fields[<span class="nu">4</span>],
-    age:             <span class="fn">Number</span>(fields[<span class="nu">5</span>]),
-    detectedEmotion: fields[<span class="nu">6</span>],
-    neutralRate:     <span class="fn">Number</span>(fields[<span class="nu">7</span>]),
-    happyRate:       <span class="fn">Number</span>(fields[<span class="nu">8</span>]),
-    sadRate:         <span class="fn">Number</span>(fields[<span class="nu">9</span>]),
-    surpriseRate:    <span class="fn">Number</span>(fields[<span class="nu">10</span>]),
-    angerRate:       <span class="fn">Number</span>(fields[<span class="nu">11</span>]),
+    time:         r.time.<span class="fn">substring</span>(<span class="nu">0</span>, <span class="nu">2</span>) + <span class="st">':00'</span>,
+    happy:        r.happyRate,
+    neutral:      r.neutralRate + r.surpriseRate,
+    dissatisfied: r.sadRate + r.angerRate,
   };
+}
+
+<span class="cm">// Orchestrator — called once per API request</span>
+<span class="kw">export function</span> <span class="fn">processRawData</span>(lines: <span class="tp">string</span>[]): <span class="tp">ProcessedDashboardData</span> {
+  <span class="kw">const</span> records  = lines.<span class="fn">map</span>(<span class="fn">parseRawLine</span>);
+  <span class="kw">const</span> emotions = records.<span class="fn">map</span>(<span class="fn">normalizeEmotion</span>);
+  <span class="kw">return</span> {
+    kpiStats:        <span class="fn">aggregateKPIs</span>(records),
+    ageDistribution: <span class="fn">aggregateAgeDistribution</span>(records),
+    emotionTrends:   <span class="fn">aggregateEmotionTrends</span>(emotions),
+    timeProfiles:    <span class="fn">aggregateTimeProfiles</span>(records),
+  };
+  <span class="cm">// React components receive pre-calculated values — no client-side re-computation.</span>
 }</pre>
   </div>
   <div class="code-block" data-ja>
-    <div class="code-block-header">
-      <span class="code-block-filename">lib/parsers/rawLineParser.ts</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
-    <pre><span class="kw">export function</span> <span class="fn">parseRawLine</span>(line: <span class="tp">string</span>): <span class="tp">RawPersonRecord</span> {
-  <span class="kw">const</span> fields = line.<span class="fn">split</span>(<span class="str">','</span>);
-  <span class="kw">return</span> {
-    date:            fields[<span class="nu">0</span>],
-    time:            fields[<span class="nu">1</span>],
-    gender:          fields[<span class="nu">4</span>],
-    age:             <span class="fn">Number</span>(fields[<span class="nu">5</span>]),
-    detectedEmotion: fields[<span class="nu">6</span>],
-    neutralRate:     <span class="fn">Number</span>(fields[<span class="nu">7</span>]),
-    happyRate:       <span class="fn">Number</span>(fields[<span class="nu">8</span>]),
-    sadRate:         <span class="fn">Number</span>(fields[<span class="nu">9</span>]),
-    surpriseRate:    <span class="fn">Number</span>(fields[<span class="nu">10</span>]),
-    angerRate:       <span class="fn">Number</span>(fields[<span class="nu">11</span>]),
-  };
-}</pre>
-  </div>
-
-  <div class="code-block" data-en>
-    <div class="code-block-header">
-      <span class="code-block-filename">lib/normalizers/emotionNormalizer.ts</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
-    <pre><span class="cm">// Camera outputs 5 raw rates. Dashboard uses 3 business categories.</span>
-<span class="cm">// surprise is grouped with neutral — not a negative signal.</span>
-<span class="cm">// sad + anger are combined into "dissatisfied".</span>
-<span class="kw">export function</span> <span class="fn">normalizeEmotion</span>(record: <span class="tp">RawPersonRecord</span>) {
-  <span class="kw">return</span> {
-    time:         record.time.<span class="fn">substring</span>(<span class="nu">0</span>, <span class="nu">2</span>) + <span class="str">':00'</span>,
-    happy:        record.happyRate,
-    neutral:      record.neutralRate + record.surpriseRate,
-    dissatisfied: record.sadRate    + record.angerRate,
-  };
-}</pre>
-  </div>
-  <div class="code-block" data-ja>
-    <div class="code-block-header">
-      <span class="code-block-filename">lib/normalizers/emotionNormalizer.ts</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
+    <div class="code-top"><span class="code-file">lib/normalizers/emotionNormalizer.ts + lib/services/dataProcessor.ts</span><span class="code-lang">TypeScript</span></div>
     <pre><span class="cm">// カメラは5種類の感情率を出力。ダッシュボードは3カテゴリに正規化。</span>
-<span class="cm">// surpriseはnegativeではないためneutralに合算。</span>
-<span class="cm">// sad + anger を "dissatisfied" に統合。</span>
-<span class="kw">export function</span> <span class="fn">normalizeEmotion</span>(record: <span class="tp">RawPersonRecord</span>) {
+<span class="cm">// surprise → neutral（negativeではない）</span>
+<span class="cm">// sad + anger → dissatisfied</span>
+<span class="kw">export function</span> <span class="fn">normalizeEmotion</span>(r: <span class="tp">RawPersonRecord</span>) {
   <span class="kw">return</span> {
-    time:         record.time.<span class="fn">substring</span>(<span class="nu">0</span>, <span class="nu">2</span>) + <span class="str">':00'</span>,
-    happy:        record.happyRate,
-    neutral:      record.neutralRate + record.surpriseRate,
-    dissatisfied: record.sadRate    + record.angerRate,
+    time:         r.time.<span class="fn">substring</span>(<span class="nu">0</span>, <span class="nu">2</span>) + <span class="st">':00'</span>,
+    happy:        r.happyRate,
+    neutral:      r.neutralRate + r.surpriseRate,
+    dissatisfied: r.sadRate + r.angerRate,
   };
-}</pre>
-  </div>
+}
 
-  <div class="code-block" data-en>
-    <div class="code-block-header">
-      <span class="code-block-filename">lib/services/dataProcessor.ts — pipeline orchestrator</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
-    <pre><span class="kw">export function</span> <span class="fn">processRawData</span>(rawLines: <span class="tp">string</span>[]): <span class="tp">ProcessedDashboardData</span> {
-  <span class="kw">const</span> records  = rawLines.<span class="fn">map</span>(line => <span class="fn">parseRawLine</span>(line));
-  <span class="kw">const</span> emotions = records.<span class="fn">map</span>(r    => <span class="fn">normalizeEmotion</span>(r));
-
+<span class="cm">// オーケストレーター — APIリクエストごとに一度呼び出す</span>
+<span class="kw">export function</span> <span class="fn">processRawData</span>(lines: <span class="tp">string</span>[]): <span class="tp">ProcessedDashboardData</span> {
+  <span class="kw">const</span> records  = lines.<span class="fn">map</span>(<span class="fn">parseRawLine</span>);
+  <span class="kw">const</span> emotions = records.<span class="fn">map</span>(<span class="fn">normalizeEmotion</span>);
   <span class="kw">return</span> {
     kpiStats:        <span class="fn">aggregateKPIs</span>(records),
     ageDistribution: <span class="fn">aggregateAgeDistribution</span>(records),
-    genderRatio:     <span class="fn">aggregateGenderRatio</span>(records),
     emotionTrends:   <span class="fn">aggregateEmotionTrends</span>(emotions),
     timeProfiles:    <span class="fn">aggregateTimeProfiles</span>(records),
   };
-}
-<span class="cm">// The API route calls processRawData() once.
-// React components receive the result — no re-aggregation on the client.</span></pre>
-  </div>
-  <div class="code-block" data-ja>
-    <div class="code-block-header">
-      <span class="code-block-filename">lib/services/dataProcessor.ts — パイプラインオーケストレーター</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
-    <pre><span class="kw">export function</span> <span class="fn">processRawData</span>(rawLines: <span class="tp">string</span>[]): <span class="tp">ProcessedDashboardData</span> {
-  <span class="kw">const</span> records  = rawLines.<span class="fn">map</span>(line => <span class="fn">parseRawLine</span>(line));
-  <span class="kw">const</span> emotions = records.<span class="fn">map</span>(r    => <span class="fn">normalizeEmotion</span>(r));
-
-  <span class="kw">return</span> {
-    kpiStats:        <span class="fn">aggregateKPIs</span>(records),
-    ageDistribution: <span class="fn">aggregateAgeDistribution</span>(records),
-    genderRatio:     <span class="fn">aggregateGenderRatio</span>(records),
-    emotionTrends:   <span class="fn">aggregateEmotionTrends</span>(emotions),
-    timeProfiles:    <span class="fn">aggregateTimeProfiles</span>(records),
-  };
-}
-<span class="cm">// APIルートがprocessRawData()を一度呼び出す。
-// Reactコンポーネントは結果を受け取るだけ — クライアント側での再集計なし。</span></pre>
+  <span class="cm">// Reactコンポーネントは計算済みの値を受け取るだけ。</span>
+}</pre>
   </div>
 </section>
 
-<!-- ══════════ 05 · SECURITY + SNIPPETS ══════════ -->
-<hr class="divider" />
-<section class="reveal">
-  <p class="section-label"><span data-en>05 · Security</span><span data-ja>05 · セキュリティ</span></p>
-  <h2 class="section-title"><span data-en>Security Architecture</span><span data-ja>セキュリティ設計</span></h2>
-
-  <div class="security-grid">
-    <div class="security-item">
-      <p class="sec-title" data-en>Row Level Security (RLS)</p><p class="sec-title" data-ja>Row Level Security</p>
-      <p data-en>All six database tables have RLS enabled. Tenant isolation is enforced at the PostgreSQL engine level, independent of application code.</p>
-      <p data-ja>全6テーブルにRLSを有効化。テナント分離はアプリケーションコードとは独立してPostgreSQLエンジンレベルで強制。</p>
-    </div>
-    <div class="security-item">
-      <p class="sec-title" data-en>httpOnly JWT Cookies</p><p class="sec-title" data-ja>httpOnly JWTクッキー</p>
-      <p data-en>JWTs are stored in httpOnly cookies. JavaScript cannot read them, which removes token theft via XSS as an attack vector.</p>
-      <p data-ja>JWTはhttpOnlyクッキーに保存。JavaScriptから読み取り不可のため、XSSによるトークン窃取の攻撃経路を排除。</p>
-    </div>
-    <div class="security-item">
-      <p class="sec-title" data-en>bcrypt Password Hashing</p><p class="sec-title" data-ja>bcryptパスワードハッシュ</p>
-      <p data-en>Passwords are hashed with bcrypt at cost factor 12. Plain-text passwords are never stored or written to any log.</p>
-      <p data-ja>パスワードはコスト係数12のbcryptでハッシュ化。平文パスワードはシステム内のいかなる場所にも保存・ログ出力されない。</p>
-    </div>
-    <div class="security-item">
-      <p class="sec-title" data-en>IP-Based Rate Limiting</p><p class="sec-title" data-ja>IPベースレートリミット</p>
-      <p data-en>Login and password-change endpoints are limited to five attempts per IP per 15 minutes. Implemented without external dependencies.</p>
-      <p data-ja>ログイン・パスワード変更エンドポイントは15分間にIPあたり5回に制限。外部パッケージ不使用のインメモリ実装。</p>
-    </div>
-    <div class="security-item">
-      <p class="sec-title" data-en>Admin / User Query Separation</p><p class="sec-title" data-ja>管理者/ユーザークエリ分離</p>
-      <p data-en><span class="ic">queryAsUser()</span> runs with RLS active. <span class="ic">queryAsAdmin()</span> bypasses RLS and is restricted to auth lookups and webhook handlers only.</p>
-      <p data-ja><span class="ic">queryAsUser()</span>はRLS有効で実行。<span class="ic">queryAsAdmin()</span>はRLSをバイパスし認証ルックアップとWebhookのみに制限。</p>
-    </div>
-    <div class="security-item">
-      <p class="sec-title" data-en>Private VPC Networking</p><p class="sec-title" data-ja>プライベートVPCネットワーク</p>
-      <p data-en>In production, RDS public access is disabled. All database traffic is routed privately between App Runner and RDS via a VPC Connector.</p>
-      <p data-ja>本番環境ではRDSのパブリックアクセスを無効化。全DBトラフィックはVPC Connector経由でプライベートルーティング。</p>
-    </div>
-  </div>
-
-  <div class="code-block" data-en style="margin-top:32px;">
-    <div class="code-block-header">
-      <span class="code-block-filename">database-schema.sql — RLS policy (raw_records)</span>
-      <span class="code-block-lang">SQL</span>
-    </div>
-    <pre><span class="kw">CREATE POLICY</span> <span class="str">"Users view own records"</span>
-<span class="kw">ON</span> raw_records <span class="kw">FOR SELECT</span>
-<span class="kw">USING</span> (
-  client_id <span class="kw">IN</span> (
-    <span class="kw">SELECT</span> id <span class="kw">FROM</span> clients
-    <span class="kw">WHERE</span> email = <span class="fn">current_setting</span>(<span class="str">'app.current_user_email'</span>, <span class="nu">true</span>)
-  )
-);
-<span class="cm">-- app.current_user_email is set per-transaction inside queryAsUser().
--- It cannot be set by an external caller — the isolation is engine-enforced.</span></pre>
-  </div>
-  <div class="code-block" data-ja style="margin-top:32px;">
-    <div class="code-block-header">
-      <span class="code-block-filename">database-schema.sql — RLSポリシー (raw_records)</span>
-      <span class="code-block-lang">SQL</span>
-    </div>
-    <pre><span class="kw">CREATE POLICY</span> <span class="str">"Users view own records"</span>
-<span class="kw">ON</span> raw_records <span class="kw">FOR SELECT</span>
-<span class="kw">USING</span> (
-  client_id <span class="kw">IN</span> (
-    <span class="kw">SELECT</span> id <span class="kw">FROM</span> clients
-    <span class="kw">WHERE</span> email = <span class="fn">current_setting</span>(<span class="str">'app.current_user_email'</span>, <span class="nu">true</span>)
-  )
-);
-<span class="cm">-- app.current_user_emailはqueryAsUser()内でトランザクション単位でセット。
--- 外部から設定不可 — 分離はエンジンレベルで強制される。</span></pre>
-  </div>
+<!-- ══ SECURITY ══ -->
+<section class="sec reveal">
+  <p class="sec-label">04 · <span data-en>Security</span><span data-ja>セキュリティ</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Auth &amp; Tenant Isolation</span>
+    <span data-ja>認証とテナント分離</span>
+  </h2>
+  <p class="prose" data-en>Tenant isolation is enforced at the PostgreSQL engine level via Row Level Security — independent of application code. JWTs are stored in httpOnly cookies. Passwords hashed with bcrypt cost factor 12. Login rate-limited to 5 attempts per IP per 15 minutes.</p>
+  <p class="prose" data-ja>テナント分離はPostgreSQLエンジンレベルのRow Level Securityで強制される。アプリケーションコードとは独立。JWTはhttpOnlyクッキーに保存。パスワードはコスト係数12のbcryptでハッシュ化。ログインはIPあたり15分で5回に制限。</p>
 
   <div class="code-block" data-en>
-    <div class="code-block-header">
-      <span class="code-block-filename">app/api/* — JWT auth middleware pattern (every protected route)</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
-    <pre><span class="kw">export async function</span> <span class="fn">POST</span>(request: <span class="tp">NextRequest</span>) {
-  <span class="kw">let</span> email: <span class="tp">string</span>;
-  <span class="kw">try</span> {
-    ({ email } = <span class="kw">await</span> <span class="fn">verifyRequest</span>(
-      request.headers.<span class="fn">get</span>(<span class="str">'authorization'</span>),
-      request.cookies.<span class="fn">get</span>(<span class="str">'auth_token'</span>)?.<span class="kv">value</span>
-    ));
-  } <span class="kw">catch</span> {
-    <span class="kw">return</span> NextResponse.<span class="fn">json</span>({ message: <span class="str">'Unauthorized'</span> }, { status: <span class="nu">401</span> });
-  }
+    <div class="code-top"><span class="code-file">database-schema.sql + app/api/*/route.ts</span><span class="code-lang">SQL / TypeScript</span></div>
+    <pre><span class="cm">-- RLS: enforced by the DB engine. Client A cannot read Client B's rows.</span>
+<span class="kw">CREATE POLICY</span> <span class="st">"Users view own records"</span> <span class="kw">ON</span> raw_records <span class="kw">FOR SELECT</span>
+<span class="kw">USING</span> (client_id <span class="kw">IN</span> (
+  <span class="kw">SELECT</span> id <span class="kw">FROM</span> clients
+  <span class="kw">WHERE</span> email = <span class="fn">current_setting</span>(<span class="st">'app.current_user_email'</span>, <span class="nu">true</span>)
+));
 
-  <span class="cm">// RLS is activated inside queryAsUser — no manual WHERE clause needed.</span>
-  <span class="kw">const</span> { rows } = <span class="kw">await</span> <span class="fn">queryAsUser</span>(email, <span class="str">`SELECT * FROM upload_sessions`</span>);
-}</pre>
+<span class="cm">// Every protected API route — JWT verified from httpOnly cookie</span>
+<span class="kw">let</span> email: <span class="tp">string</span>;
+<span class="kw">try</span> {
+  ({ email } = <span class="kw">await</span> <span class="fn">verifyRequest</span>(
+    request.headers.<span class="fn">get</span>(<span class="st">'authorization'</span>),
+    request.cookies.<span class="fn">get</span>(<span class="st">'auth_token'</span>)?.<span class="fn">value</span>
+  ));
+} <span class="kw">catch</span> {
+  <span class="kw">return</span> NextResponse.<span class="fn">json</span>({ message: <span class="st">'Unauthorized'</span> }, { status: <span class="nu">401</span> });
+}
+<span class="cm">// queryAsUser() sets the session var — RLS handles the rest automatically</span>
+<span class="kw">const</span> { rows } = <span class="kw">await</span> <span class="fn">queryAsUser</span>(email, <span class="st">`SELECT * FROM upload_sessions`</span>);</pre>
   </div>
   <div class="code-block" data-ja>
-    <div class="code-block-header">
-      <span class="code-block-filename">app/api/* — JWT認証ミドルウェアパターン（全保護ルート共通）</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
-    <pre><span class="kw">export async function</span> <span class="fn">POST</span>(request: <span class="tp">NextRequest</span>) {
-  <span class="kw">let</span> email: <span class="tp">string</span>;
-  <span class="kw">try</span> {
-    ({ email } = <span class="kw">await</span> <span class="fn">verifyRequest</span>(
-      request.headers.<span class="fn">get</span>(<span class="str">'authorization'</span>),
-      request.cookies.<span class="fn">get</span>(<span class="str">'auth_token'</span>)?.<span class="kv">value</span>
-    ));
-  } <span class="kw">catch</span> {
-    <span class="kw">return</span> NextResponse.<span class="fn">json</span>({ message: <span class="str">'認証が必要です'</span> }, { status: <span class="nu">401</span> });
-  }
+    <div class="code-top"><span class="code-file">database-schema.sql + app/api/*/route.ts</span><span class="code-lang">SQL / TypeScript</span></div>
+    <pre><span class="cm">-- RLS: DBエンジンが強制。クライアントAはクライアントBの行を読めない。</span>
+<span class="kw">CREATE POLICY</span> <span class="st">"Users view own records"</span> <span class="kw">ON</span> raw_records <span class="kw">FOR SELECT</span>
+<span class="kw">USING</span> (client_id <span class="kw">IN</span> (
+  <span class="kw">SELECT</span> id <span class="kw">FROM</span> clients
+  <span class="kw">WHERE</span> email = <span class="fn">current_setting</span>(<span class="st">'app.current_user_email'</span>, <span class="nu">true</span>)
+));
 
-  <span class="cm">// queryAsUser内でRLSが有効化される — 手動のWHERE句は不要。</span>
-  <span class="kw">const</span> { rows } = <span class="kw">await</span> <span class="fn">queryAsUser</span>(email, <span class="str">`SELECT * FROM upload_sessions`</span>);
-}</pre>
+<span class="cm">// 全保護APIルート共通 — httpOnlyクッキーからJWTを検証</span>
+<span class="kw">let</span> email: <span class="tp">string</span>;
+<span class="kw">try</span> {
+  ({ email } = <span class="kw">await</span> <span class="fn">verifyRequest</span>(
+    request.headers.<span class="fn">get</span>(<span class="st">'authorization'</span>),
+    request.cookies.<span class="fn">get</span>(<span class="st">'auth_token'</span>)?.<span class="fn">value</span>
+  ));
+} <span class="kw">catch</span> {
+  <span class="kw">return</span> NextResponse.<span class="fn">json</span>({ message: <span class="st">'認証が必要です'</span> }, { status: <span class="nu">401</span> });
+}
+<span class="cm">// queryAsUser()がセッション変数をセット — RLSが自動的に残りを処理</span>
+<span class="kw">const</span> { rows } = <span class="kw">await</span> <span class="fn">queryAsUser</span>(email, <span class="st">`SELECT * FROM upload_sessions`</span>);</pre>
   </div>
 </section>
 
-<!-- ══════════ 06 · REALTIME + SNIPPET ══════════ -->
-<hr class="divider" />
-<section class="reveal">
-  <p class="section-label"><span data-en>06 · Realtime</span><span data-ja>06 · リアルタイム</span></p>
-  <h2 class="section-title"><span data-en>SSE Stream Implementation</span><span data-ja>SSEストリーム実装</span></h2>
-  <p class="section-desc" data-en>The realtime path uses Server-Sent Events rather than WebSockets. The data flow is strictly unidirectional: hardware pushes records to an HTTP endpoint which updates an in-memory snapshot store; an SSE stream delivers those snapshots to connected browsers. No persistent connection management or external pub/sub infrastructure is required.</p>
-  <p class="section-desc" data-ja>リアルタイムパスはWebSocketではなくServer-Sent Eventsを採用。データフローは完全に一方向で、ハードウェアがHTTPエンドポイントにレコードをプッシュしインメモリスナップショットストアを更新、SSEストリームが接続中のブラウザに配信する。永続接続管理や外部pub/subインフラは不要。</p>
+<!-- ══ REALTIME ══ -->
+<section class="sec reveal">
+  <p class="sec-label">05 · <span data-en>Realtime</span><span data-ja>リアルタイム</span></p>
+  <h2 class="sec-h2">
+    <span data-en>SSE Stream Implementation</span>
+    <span data-ja>SSEストリーム実装</span>
+  </h2>
+  <p class="prose" data-en>Hardware pushes records to an HTTP endpoint which updates an in-memory snapshot store. An SSE stream delivers those snapshots to the browser. No WebSocket server or external pub/sub infrastructure required.</p>
+  <p class="prose" data-ja>ハードウェアがHTTPエンドポイントにレコードをプッシュし、インメモリスナップショットストアを更新。SSEストリームが接続中のブラウザにスナップショットを配信する。WebSocketサーバーや外部pub/subインフラは不要。</p>
 
   <div class="code-block" data-en>
-    <div class="code-block-header">
-      <span class="code-block-filename">app/api/realtime/stream/route.ts</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
-    <pre><span class="kw">export async function</span> <span class="fn">GET</span>(request: <span class="tp">NextRequest</span>) {
-  <span class="cm">// Auth + plan check omitted — must be 'pro'.</span>
-  <span class="kw">const</span> billboardId = request.nextUrl.searchParams.<span class="fn">get</span>(<span class="str">'billboard_id'</span>)!;
-  <span class="kw">let</span> pollTimer: <span class="tp">ReturnType</span>&lt;<span class="kw">typeof</span> setInterval&gt;;
-  <span class="kw">let</span> heartbeatTimer: <span class="tp">ReturnType</span>&lt;<span class="kw">typeof</span> setInterval&gt;;
-  <span class="kw">let</span> lastSentAt = <span class="str">''</span>;
+    <div class="code-top"><span class="code-file">app/api/realtime/stream/route.ts</span><span class="code-lang">TypeScript</span></div>
+    <pre><span class="kw">const</span> stream = <span class="kw">new</span> <span class="fn">ReadableStream</span>({
+  <span class="fn">start</span>(controller) {
+    <span class="kw">const</span> enc = (s: <span class="tp">string</span>) => <span class="kw">new</span> <span class="tp">TextEncoder</span>().<span class="fn">encode</span>(s);
 
-  <span class="kw">const</span> stream = <span class="kw">new</span> <span class="fn">ReadableStream</span>({
-    <span class="fn">start</span>(controller) {
-      <span class="kw">const</span> <span class="fn">encode</span> = (s: <span class="tp">string</span>) => <span class="kw">new</span> <span class="tp">TextEncoder</span>().<span class="fn">encode</span>(s);
+    <span class="cm">// Send latest snapshot immediately on connect</span>
+    <span class="kw">const</span> init = <span class="fn">getSnapshot</span>(billboardId);
+    <span class="kw">if</span> (init) controller.<span class="fn">enqueue</span>(enc(`data: ${<span class="fn">JSON.stringify</span>(init)}\n\n`));
 
-      <span class="cm">// Send latest snapshot immediately on connect.</span>
-      <span class="kw">const</span> initial = <span class="fn">getSnapshot</span>(billboardId);
-      <span class="kw">if</span> (initial) controller.<span class="fn">enqueue</span>(<span class="fn">encode</span>(`data: ${<span class="fn">JSON.stringify</span>(initial)}\n\n`));
+    <span class="cm">// Poll every 3s — only push when snapshot has changed</span>
+    poll = <span class="fn">setInterval</span>(() => {
+      <span class="kw">const</span> snap = <span class="fn">getSnapshot</span>(billboardId);
+      <span class="kw">if</span> (snap && snap.updatedAt !== lastSent) {
+        controller.<span class="fn">enqueue</span>(enc(`data: ${<span class="fn">JSON.stringify</span>(snap)}\n\n`));
+        lastSent = snap.updatedAt;
+      }
+    }, <span class="nu">3000</span>);
 
-      <span class="cm">// Poll in-memory store; send only when snapshot has changed.</span>
-      pollTimer = <span class="fn">setInterval</span>(() => {
-        <span class="kw">const</span> snap = <span class="fn">getSnapshot</span>(billboardId);
-        <span class="kw">if</span> (snap && snap.updatedAt !== lastSentAt) {
-          controller.<span class="fn">enqueue</span>(<span class="fn">encode</span>(`data: ${<span class="fn">JSON.stringify</span>(snap)}\n\n`));
-          lastSentAt = snap.updatedAt;
-        }
-      }, <span class="nu">3000</span>);
-
-      <span class="cm">// Heartbeat keeps the connection alive through proxies.</span>
-      heartbeatTimer = <span class="fn">setInterval</span>(
-        () => controller.<span class="fn">enqueue</span>(<span class="fn">encode</span>(<span class="str">': heartbeat\n\n'</span>)),
-        <span class="nu">30000</span>
-      );
-    },
-    <span class="fn">cancel</span>() {
-      <span class="fn">clearInterval</span>(pollTimer);
-      <span class="fn">clearInterval</span>(heartbeatTimer);
-    },
-  });
-
-  <span class="kw">return new</span> <span class="tp">Response</span>(stream, {
-    headers: { <span class="str">'Content-Type'</span>: <span class="str">'text/event-stream'</span>, <span class="str">'Cache-Control'</span>: <span class="str">'no-cache'</span> },
-  });
-}</pre>
+    <span class="cm">// Heartbeat every 30s keeps connection alive through proxies</span>
+    hb = <span class="fn">setInterval</span>(() => controller.<span class="fn">enqueue</span>(enc(<span class="st">': heartbeat\n\n'</span>)), <span class="nu">30000</span>);
+  },
+  <span class="fn">cancel</span>() { <span class="fn">clearInterval</span>(poll); <span class="fn">clearInterval</span>(hb); },
+});
+<span class="kw">return new</span> <span class="tp">Response</span>(stream, {
+  headers: { <span class="st">'Content-Type'</span>: <span class="st">'text/event-stream'</span>, <span class="st">'Cache-Control'</span>: <span class="st">'no-cache'</span> },
+});</pre>
   </div>
   <div class="code-block" data-ja>
-    <div class="code-block-header">
-      <span class="code-block-filename">app/api/realtime/stream/route.ts</span>
-      <span class="code-block-lang">TypeScript</span>
-    </div>
-    <pre><span class="kw">export async function</span> <span class="fn">GET</span>(request: <span class="tp">NextRequest</span>) {
-  <span class="cm">// 認証・プランチェックは省略 — 'pro'プランが必要。</span>
-  <span class="kw">const</span> billboardId = request.nextUrl.searchParams.<span class="fn">get</span>(<span class="str">'billboard_id'</span>)!;
-  <span class="kw">let</span> pollTimer: <span class="tp">ReturnType</span>&lt;<span class="kw">typeof</span> setInterval&gt;;
-  <span class="kw">let</span> heartbeatTimer: <span class="tp">ReturnType</span>&lt;<span class="kw">typeof</span> setInterval&gt;;
-  <span class="kw">let</span> lastSentAt = <span class="str">''</span>;
+    <div class="code-top"><span class="code-file">app/api/realtime/stream/route.ts</span><span class="code-lang">TypeScript</span></div>
+    <pre><span class="kw">const</span> stream = <span class="kw">new</span> <span class="fn">ReadableStream</span>({
+  <span class="fn">start</span>(controller) {
+    <span class="kw">const</span> enc = (s: <span class="tp">string</span>) => <span class="kw">new</span> <span class="tp">TextEncoder</span>().<span class="fn">encode</span>(s);
 
-  <span class="kw">const</span> stream = <span class="kw">new</span> <span class="fn">ReadableStream</span>({
-    <span class="fn">start</span>(controller) {
-      <span class="kw">const</span> <span class="fn">encode</span> = (s: <span class="tp">string</span>) => <span class="kw">new</span> <span class="tp">TextEncoder</span>().<span class="fn">encode</span>(s);
+    <span class="cm">// 接続時に最新スナップショットを即時送信</span>
+    <span class="kw">const</span> init = <span class="fn">getSnapshot</span>(billboardId);
+    <span class="kw">if</span> (init) controller.<span class="fn">enqueue</span>(enc(`data: ${<span class="fn">JSON.stringify</span>(init)}\n\n`));
 
-      <span class="cm">// 接続時に最新スナップショットを即時送信。</span>
-      <span class="kw">const</span> initial = <span class="fn">getSnapshot</span>(billboardId);
-      <span class="kw">if</span> (initial) controller.<span class="fn">enqueue</span>(<span class="fn">encode</span>(`data: ${<span class="fn">JSON.stringify</span>(initial)}\n\n`));
+    <span class="cm">// 3秒ごとにポーリング — スナップショット変更時のみ送信</span>
+    poll = <span class="fn">setInterval</span>(() => {
+      <span class="kw">const</span> snap = <span class="fn">getSnapshot</span>(billboardId);
+      <span class="kw">if</span> (snap && snap.updatedAt !== lastSent) {
+        controller.<span class="fn">enqueue</span>(enc(`data: ${<span class="fn">JSON.stringify</span>(snap)}\n\n`));
+        lastSent = snap.updatedAt;
+      }
+    }, <span class="nu">3000</span>);
 
-      <span class="cm">// インメモリストアをポーリング。スナップショット変更時のみ送信。</span>
-      pollTimer = <span class="fn">setInterval</span>(() => {
-        <span class="kw">const</span> snap = <span class="fn">getSnapshot</span>(billboardId);
-        <span class="kw">if</span> (snap && snap.updatedAt !== lastSentAt) {
-          controller.<span class="fn">enqueue</span>(<span class="fn">encode</span>(`data: ${<span class="fn">JSON.stringify</span>(snap)}\n\n`));
-          lastSentAt = snap.updatedAt;
-        }
-      }, <span class="nu">3000</span>);
-
-      <span class="cm">// ハートビートでプロキシ経由の接続を維持。</span>
-      heartbeatTimer = <span class="fn">setInterval</span>(
-        () => controller.<span class="fn">enqueue</span>(<span class="fn">encode</span>(<span class="str">': heartbeat\n\n'</span>)),
-        <span class="nu">30000</span>
-      );
-    },
-    <span class="fn">cancel</span>() {
-      <span class="fn">clearInterval</span>(pollTimer);
-      <span class="fn">clearInterval</span>(heartbeatTimer);
-    },
-  });
-
-  <span class="kw">return new</span> <span class="tp">Response</span>(stream, {
-    headers: { <span class="str">'Content-Type'</span>: <span class="str">'text/event-stream'</span>, <span class="str">'Cache-Control'</span>: <span class="str">'no-cache'</span> },
-  });
-}</pre>
+    <span class="cm">// 30秒ごとのハートビートでプロキシ経由の接続を維持</span>
+    hb = <span class="fn">setInterval</span>(() => controller.<span class="fn">enqueue</span>(enc(<span class="st">': heartbeat\n\n'</span>)), <span class="nu">30000</span>);
+  },
+  <span class="fn">cancel</span>() { <span class="fn">clearInterval</span>(poll); <span class="fn">clearInterval</span>(hb); },
+});
+<span class="kw">return new</span> <span class="tp">Response</span>(stream, {
+  headers: { <span class="st">'Content-Type'</span>: <span class="st">'text/event-stream'</span>, <span class="st">'Cache-Control'</span>: <span class="st">'no-cache'</span> },
+});</pre>
   </div>
 </section>
 
-<!-- ══════════ 07 · INFRASTRUCTURE ══════════ -->
-<hr class="divider" />
-<section class="reveal">
-  <p class="section-label"><span data-en>07 · Infrastructure</span><span data-ja>07 · インフラ</span></p>
-  <h2 class="section-title"><span data-en>AWS Production Stack</span><span data-ja>AWS本番スタック</span></h2>
-  <table class="infra-table">
+<!-- ══ FEATURES ══ -->
+<section class="sec reveal">
+  <p class="sec-label">06 · <span data-en>Features</span><span data-ja>機能一覧</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Platform Capabilities</span>
+    <span data-ja>プラットフォームの主要機能</span>
+  </h2>
+  <div class="feat-list">
+    <div class="feat"><span class="feat-n">F-01</span><span class="feat-t" data-en>Visitor Analytics Dashboard</span><span class="feat-t" data-ja>来客分析ダッシュボード</span><span class="feat-d" data-en>Time-of-day profiles, age distribution, gender ratio, emotion trends — server-aggregated and rendered via Recharts.</span><span class="feat-d" data-ja>時間帯・年齢・性別・感情をサーバーサイドで集計しRechartsで描画。</span></div>
+    <div class="feat"><span class="feat-n">F-02</span><span class="feat-t" data-en>KPI Cards with Trend Indicators</span><span class="feat-t" data-ja>KPIカードとトレンド表示</span><span class="feat-d" data-en>Visitor count, satisfaction score, peak hour — with week-over-week and month-over-month comparisons.</span><span class="feat-d" data-ja>来客数・満足度・ピーク時間帯の前週比・前月比トレンド表示。</span></div>
+    <div class="feat"><span class="feat-n">F-03</span><span class="feat-t" data-en>Realtime Live Preview (Pro)</span><span class="feat-t" data-ja>リアルタイムプレビュー（Pro）</span><span class="feat-d" data-en>SSE stream delivers KPI snapshots to the browser as hardware pushes data. No polling required.</span><span class="feat-d" data-ja>ハードウェアのプッシュをSSEストリームでブラウザに即時配信。ポーリング不要。</span></div>
+    <div class="feat"><span class="feat-n">F-04</span><span class="feat-t" data-en>Session Comparison</span><span class="feat-t" data-ja>セッション比較</span><span class="feat-d" data-en>Side-by-side comparison of any two sessions via a calendar date selector.</span><span class="feat-d" data-ja>カレンダーUIで任意の2セッションを並列比較。</span></div>
+    <div class="feat"><span class="feat-n">F-05</span><span class="feat-t" data-en>PDF Report Generation</span><span class="feat-t" data-ja>PDFレポート出力</span><span class="feat-d" data-en>Print-optimized A4 two-page reports generated client-side via print CSS. No server required.</span><span class="feat-d" data-ja>印刷CSSによるA4・2ページPDFをクライアントサイドで生成。サーバー不要。</span></div>
+    <div class="feat"><span class="feat-n">F-06</span><span class="feat-t" data-en>CSV Export</span><span class="feat-t" data-ja>CSVエクスポート</span><span class="feat-d" data-en>UTF-8 BOM CSV for Excel compatibility, generated in-browser.</span><span class="feat-d" data-ja>UTF-8 BOM付きCSVをブラウザで生成。Excel対応。</span></div>
+    <div class="feat"><span class="feat-n">F-07</span><span class="feat-t" data-en>Stripe Subscription Billing</span><span class="feat-t" data-ja>Stripeサブスクリプション課金</span><span class="feat-d" data-en>Basic/Pro plans via Stripe Checkout and Webhooks. Plan enforced server-side on every request.</span><span class="feat-d" data-ja>Stripe Checkout + WebhookでBasic/Proプランを管理。全リクエストでサーバーサイド検証。</span></div>
+    <div class="feat"><span class="feat-n">F-08</span><span class="feat-t" data-en>Automated Email Reports</span><span class="feat-t" data-ja>定期メールレポート</span><span class="feat-d" data-en>Weekly and monthly analytics via AWS SES v2, triggered by EventBridge Scheduler.</span><span class="feat-d" data-ja>AWS SES v2 + EventBridge Schedulerで週次・月次レポートを自動送信。</span></div>
+    <div class="feat"><span class="feat-n">F-09</span><span class="feat-t" data-en>Multi-Location Support</span><span class="feat-t" data-ja>複数拠点対応</span><span class="feat-d" data-en>Multiple billboard locations per account, data isolated at the PostgreSQL RLS level.</span><span class="feat-d" data-ja>1アカウントで複数拠点を管理。RLSによる完全なデータ分離。</span></div>
+    <div class="feat"><span class="feat-n">F-10</span><span class="feat-t" data-en>Hardware Push Agent</span><span class="feat-t" data-ja>ハードウェアエージェント</span><span class="feat-d" data-en>Python agent watches for new DAT files on the box PC and pushes them automatically to the API.</span><span class="feat-d" data-ja>PythonエージェントがDATファイルを監視し自動でAPIにプッシュ。</span></div>
+    <div class="feat"><span class="feat-n">F-11</span><span class="feat-t" data-en>Duplicate Detection</span><span class="feat-t" data-ja>重複検出</span><span class="feat-d" data-en>Automatic detection of duplicate records on upload prevents double-counting.</span><span class="feat-d" data-ja>アップロード時に重複レコードを自動検出。二重計上を防止。</span></div>
+    <div class="feat"><span class="feat-n">F-12</span><span class="feat-t" data-en>Sales Data Correlation</span><span class="feat-t" data-ja>売上データ相関</span><span class="feat-d" data-en>POS-format CSV upload with visitor analytics and revenue shown side by side.</span><span class="feat-d" data-ja>POS形式CSVをアップロードし来客データと売上を並列表示。</span></div>
+  </div>
+</section>
+
+<!-- ══ INFRASTRUCTURE ══ -->
+<section class="sec reveal">
+  <p class="sec-label">07 · <span data-en>Infrastructure</span><span data-ja>インフラ</span></p>
+  <h2 class="sec-h2">
+    <span data-en>AWS Production Stack</span>
+    <span data-ja>AWS本番スタック</span>
+  </h2>
+  <table class="tbl">
     <thead>
       <tr>
         <th data-en>Layer</th><th data-en>Service</th><th data-en>Role</th>
@@ -844,161 +732,190 @@
     </thead>
     <tbody>
       <tr>
-        <td data-en>Compute</td><td data-en>AWS App Runner</td><td data-en>Auto-scaling Next.js server. Deploys automatically on push to master.</td>
-        <td data-ja>コンピュート</td><td data-ja>AWS App Runner</td><td data-ja>オートスケーリングNext.jsサーバー。masterへのpushで自動デプロイ。</td>
+        <td data-en>Compute</td><td data-en>AWS App Runner</td><td data-en>Auto-scaling Next.js. Deploys on push to master.</td>
+        <td data-ja>コンピュート</td><td data-ja>AWS App Runner</td><td data-ja>オートスケーリングNext.js。masterへのpushで自動デプロイ。</td>
       </tr>
       <tr>
-        <td data-en>Database</td><td data-en>AWS RDS PostgreSQL 16</td><td data-en>Primary data store. 6 tables, RLS on all, node-postgres connection pooling.</td>
-        <td data-ja>データベース</td><td data-ja>AWS RDS PostgreSQL 16</td><td data-ja>メインデータストア。6テーブル・全RLS有効。node-postgresで接続プール管理。</td>
+        <td data-en>Database</td><td data-en>AWS RDS PostgreSQL 16</td><td data-en>6 tables, RLS on all, node-postgres connection pooling.</td>
+        <td data-ja>データベース</td><td data-ja>AWS RDS PostgreSQL 16</td><td data-ja>6テーブル・全RLS有効。node-postgresで接続プール管理。</td>
       </tr>
       <tr>
-        <td data-en>Email</td><td data-en>AWS SES v2</td><td data-en>Account invites, password resets, and scheduled analytics reports.</td>
-        <td data-ja>メール</td><td data-ja>AWS SES v2</td><td data-ja>招待・パスワードリセット・定期分析レポートの送信。</td>
+        <td data-en>Email</td><td data-en>AWS SES v2</td><td data-en>Account invites, password resets, scheduled reports.</td>
+        <td data-ja>メール</td><td data-ja>AWS SES v2</td><td data-ja>招待・パスワードリセット・定期レポート送信。</td>
       </tr>
       <tr>
-        <td data-en>Scheduling</td><td data-en>AWS EventBridge Scheduler</td><td data-en>Cron triggers for weekly and monthly email report batches.</td>
-        <td data-ja>スケジューリング</td><td data-ja>AWS EventBridge Scheduler</td><td data-ja>週次・月次メールレポートバッチのCronトリガー。</td>
+        <td data-en>Scheduling</td><td data-en>EventBridge Scheduler</td><td data-en>Cron triggers for weekly and monthly email batches.</td>
+        <td data-ja>スケジューリング</td><td data-ja>EventBridge Scheduler</td><td data-ja>週次・月次メールバッチのCronトリガー。</td>
       </tr>
       <tr>
-        <td data-en>Payments</td><td data-en>Stripe</td><td data-en>Checkout sessions, subscription lifecycle management, webhook-driven plan sync.</td>
-        <td data-ja>決済</td><td data-ja>Stripe</td><td data-ja>Checkoutセッション・サブスクリプション管理・WebhookによるDBプラン同期。</td>
+        <td data-en>Payments</td><td data-en>Stripe</td><td data-en>Checkout, subscription lifecycle, webhook plan sync.</td>
+        <td data-ja>決済</td><td data-ja>Stripe</td><td data-ja>Checkout・サブスクリプション管理・Webhookプラン同期。</td>
       </tr>
       <tr>
-        <td data-en>Networking</td><td data-en>VPC + VPC Connector</td><td data-en>App Runner to RDS traffic routed privately. RDS public access disabled in production.</td>
-        <td data-ja>ネットワーク</td><td data-ja>VPC + VPC Connector</td><td data-ja>App Runner↔RDSのトラフィックをプライベートルーティング。本番ではRDSパブリックアクセス無効。</td>
+        <td data-en>Networking</td><td data-en>VPC + VPC Connector</td><td data-en>App Runner ↔ RDS routed privately. No public DB access in production.</td>
+        <td data-ja>ネットワーク</td><td data-ja>VPC + VPC Connector</td><td data-ja>App Runner↔RDSのプライベートルーティング。本番ではDBパブリックアクセス無効。</td>
       </tr>
       <tr>
-        <td data-en>Secrets</td><td data-en>AWS Secrets Manager</td><td data-en>Database credentials, JWT secret, and API keys.</td>
+        <td data-en>Secrets</td><td data-en>AWS Secrets Manager</td><td data-en>DB credentials, JWT secret, and API keys.</td>
         <td data-ja>シークレット管理</td><td data-ja>AWS Secrets Manager</td><td data-ja>DB認証情報・JWTシークレット・APIキーの保管。</td>
       </tr>
     </tbody>
   </table>
 </section>
 
-<!-- ══════════ 08 · TECH STACK ══════════ -->
-<hr class="divider" />
-<section class="reveal">
-  <p class="section-label"><span data-en>08 · Tech Stack</span><span data-ja>08 · 技術スタック</span></p>
-  <h2 class="section-title"><span data-en>Technologies Used</span><span data-ja>使用技術一覧</span></h2>
-  <div class="tech-grid">
-    <div class="tech-item">
-      <p class="tech-category" data-en>Framework</p><p class="tech-category" data-ja>フレームワーク</p>
-      <p class="tech-name">Next.js 15</p>
-      <p class="tech-detail" data-en>App Router, Server + Client Components</p><p class="tech-detail" data-ja>App Router・サーバー/クライアントコンポーネント</p>
+<!-- ══ DECISIONS ══ -->
+<section class="sec reveal">
+  <p class="sec-label">08 · <span data-en>Design Rationale</span><span data-ja>技術的意思決定</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Key Technical Decisions</span>
+    <span data-ja>主要な技術選定の理由</span>
+  </h2>
+  <div class="dec-list">
+    <div class="dec">
+      <p class="dec-q" data-en>Next.js App Router over a separate API server and SPA</p>
+      <p class="dec-q" data-ja>別APIサーバー+SPAではなくNext.js App Routerを選択</p>
+      <p class="dec-a" data-en>A single deployment handles both the React frontend and all API routes — eliminating a second deployment target, CORS configuration, and split environment variables.</p>
+      <p class="dec-a" data-ja>単一デプロイでフロントエンドと全APIルートを処理。デプロイ先の分割・CORS設定・環境変数の分離を排除できる。</p>
     </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Language</p><p class="tech-category" data-ja>言語</p>
-      <p class="tech-name">TypeScript</p>
-      <p class="tech-detail" data-en>Strict mode, discriminated unions, generics</p><p class="tech-detail" data-ja>strictモード・判別共用体・ジェネリクス</p>
+    <div class="dec">
+      <p class="dec-q" data-en>PostgreSQL RLS over application-layer tenant filtering</p>
+      <p class="dec-q" data-ja>アプリレイヤーではなくPostgreSQL RLSでテナント分離</p>
+      <p class="dec-a" data-en>Application-level WHERE clauses fail silently if a developer forgets them. RLS policies are defined once and enforced unconditionally by the database engine — security becomes a database guarantee.</p>
+      <p class="dec-a" data-ja>アプリレイヤーのWHERE句は書き忘れると無音で失敗する。RLSポリシーは一度定義すればDBエンジンが無条件に強制するため、セキュリティがDB保証になる。</p>
     </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Styling</p><p class="tech-category" data-ja>スタイリング</p>
-      <p class="tech-name">Tailwind CSS v4</p>
-      <p class="tech-detail" data-en>CSS-first config, no tailwind.config.ts</p><p class="tech-detail" data-ja>CSS-first設定</p>
+    <div class="dec">
+      <p class="dec-q" data-en>SSE over WebSockets for realtime</p>
+      <p class="dec-q" data-ja>リアルタイムにWebSocketではなくSSEを採用</p>
+      <p class="dec-a" data-en>The use case is strictly server-to-client. SSE is HTTP-native, passes through proxies without configuration, and requires no persistent connection management on the server.</p>
+      <p class="dec-a" data-ja>ユースケースは完全にサーバー→クライアントの一方向。SSEはHTTPネイティブでプロキシを設定なしで通過し、サーバー側の永続接続管理が不要。</p>
     </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Charts</p><p class="tech-category" data-ja>チャート</p>
-      <p class="tech-name">Recharts</p>
-      <p class="tech-detail" data-en>Bar, Line, Pie, custom tooltips</p><p class="tech-detail" data-ja>Bar・Line・Pie・カスタムツールチップ</p>
-    </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Auth</p><p class="tech-category" data-ja>認証</p>
-      <p class="tech-name">JWT + bcrypt</p>
-      <p class="tech-detail" data-en>HS256 via jose, httpOnly cookies</p><p class="tech-detail" data-ja>joseによるHS256・httpOnlyクッキー</p>
-    </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Database</p><p class="tech-category" data-ja>データベース</p>
-      <p class="tech-name">PostgreSQL 16</p>
-      <p class="tech-detail" data-en>RLS, node-postgres, connection pooling</p><p class="tech-detail" data-ja>RLS・node-postgres・接続プール</p>
-    </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Compute</p><p class="tech-category" data-ja>コンピュート</p>
-      <p class="tech-name">AWS App Runner</p>
-      <p class="tech-detail" data-en>Auto-scaling, git-push deploys</p><p class="tech-detail" data-ja>オートスケーリング・git pushデプロイ</p>
-    </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Email</p><p class="tech-category" data-ja>メール</p>
-      <p class="tech-name">AWS SES v2</p>
-      <p class="tech-detail" data-en>Transactional + scheduled reports</p><p class="tech-detail" data-ja>トランザクション＋定期レポート配信</p>
-    </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Payments</p><p class="tech-category" data-ja>決済</p>
-      <p class="tech-name">Stripe</p>
-      <p class="tech-detail" data-en>Checkout, Webhooks, subscriptions</p><p class="tech-detail" data-ja>Checkout・Webhook・サブスクリプション管理</p>
-    </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Realtime</p><p class="tech-category" data-ja>リアルタイム</p>
-      <p class="tech-name">SSE</p>
-      <p class="tech-detail" data-en>ReadableStream + in-memory snapshot store</p><p class="tech-detail" data-ja>ReadableStream＋インメモリスナップショットストア</p>
-    </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Scheduling</p><p class="tech-category" data-ja>スケジューリング</p>
-      <p class="tech-name">EventBridge Scheduler</p>
-      <p class="tech-detail" data-en>Weekly / monthly cron triggers</p><p class="tech-detail" data-ja>週次・月次Cronトリガー</p>
-    </div>
-    <div class="tech-item">
-      <p class="tech-category" data-en>Hardware Agent</p><p class="tech-category" data-ja>ハードウェアエージェント</p>
-      <p class="tech-name">Python</p>
-      <p class="tech-detail" data-en>File watcher + push agent for edge devices</p><p class="tech-detail" data-ja>エッジデバイス向けファイル監視・プッシュエージェント</p>
+    <div class="dec">
+      <p class="dec-q" data-en>Server-side aggregation only — no client re-computation</p>
+      <p class="dec-q" data-ja>集計はサーバーのみ — クライアントでの再計算なし</p>
+      <p class="dec-a" data-en>Raw records never cross the network. React components receive pre-calculated values. Adding a new chart requires one new aggregator function — no changes to rendering logic.</p>
+      <p class="dec-a" data-ja>生レコードはネットワークに流れない。Reactコンポーネントは計算済みの値を受け取るだけ。新チャートの追加は集計関数を1つ追加するだけでよく、レンダリングロジックの変更は不要。</p>
     </div>
   </div>
 </section>
 
-<!-- ══════════ 09 · DESIGN RATIONALE ══════════ -->
-<hr class="divider" />
-<section class="reveal">
-  <p class="section-label"><span data-en>09 · Design Rationale</span><span data-ja>09 · 設計の根拠</span></p>
-  <h2 class="section-title"><span data-en>Key Technical Decisions</span><span data-ja>主要な技術的意思決定</span></h2>
-  <div class="decisions-list">
-    <div class="decision-item">
-      <h4 data-en>Next.js App Router over a separate API server and SPA</h4>
-      <h4 data-ja>別APIサーバー+SPAではなくNext.js App Routerを選択</h4>
-      <p data-en>A single Next.js deployment handles both the React frontend and all API routes. This consolidates the deployment target, eliminates CORS configuration, and shares environment variables — a practical trade-off for a project maintained by a small team.</p>
-      <p data-ja>Next.js単体でフロントエンドと全APIルートを処理。デプロイ先が1つになりCORS設定不要、環境変数も共有。小規模チームでの運用を考慮した現実的なトレードオフ。</p>
-    </div>
-    <div class="decision-item">
-      <h4 data-en>RLS over application-layer tenant filtering</h4>
-      <h4 data-ja>アプリレイヤーフィルタリングではなくRLSを選択</h4>
-      <p data-en>Application-level filtering fails silently if a developer omits a WHERE clause. PostgreSQL RLS policies are defined once and enforced unconditionally by the database engine — making security a database guarantee rather than a code-discipline requirement.</p>
-      <p data-ja>アプリレイヤーのフィルタリングは開発者がWHERE句を書き忘れると無音で失敗する。PostgreSQL RLSポリシーは一度定義すればDBエンジンが無条件に強制するため、セキュリティがコード規律ではなくDB保証になる。</p>
-    </div>
-    <div class="decision-item">
-      <h4 data-en>SSE over WebSockets for the realtime feature</h4>
-      <h4 data-ja>リアルタイム通信にWebSocketではなくSSEを選択</h4>
-      <p data-en>The realtime use case is strictly unidirectional — the server pushes KPI updates to the browser. WebSockets are bidirectional and require persistent connection management that complicates stateless deployments. SSE is HTTP-native and passes through standard proxies without configuration.</p>
-      <p data-ja>リアルタイムのユースケースはサーバー→ブラウザの一方向のみ。WebSocketは双方向でステートレスデプロイを複雑にする。SSEはHTTPネイティブでプロキシを設定なしで通過する。</p>
-    </div>
-    <div class="decision-item">
-      <h4 data-en>Server-side aggregation — no client-side re-computation</h4>
-      <h4 data-ja>サーバーサイド集計 — クライアントでの再計算なし</h4>
-      <p data-en>Dashboard data is fully aggregated in the API route before being returned. React components receive pre-calculated values and render only. Raw records never traverse the network, and adding a new chart requires only a new aggregator function — not changes to rendering logic.</p>
-      <p data-ja>ダッシュボードデータはAPIルートで完全に集計してからクライアントに返す。Reactコンポーネントは計算済みの値を受け取ってレンダリングするだけ。生レコードはネットワークに流れない。新チャートの追加は集計関数を1つ追加するだけ。</p>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════ FOOTER ══════════ -->
-<hr class="divider" />
+<!-- ══ FOOTER ══ -->
 <footer>
-  <p data-en>Full-stack design, implementation, and deployment — 2025–2026.</p>
-  <p data-ja>設計・実装・デプロイ — 2025–2026年</p>
-  <a href="https://github.com/" data-en>GitHub Profile →</a>
-  <a href="https://github.com/" data-ja>GitHubプロフィール →</a>
+  <p data-en>Full-stack design, implementation, and deployment — 2026.</p>
+  <p data-ja>設計・実装・デプロイ — 2026年</p>
+  <a href="https://github.com/SoosDev" data-en>github.com/SoosDev →</a>
+  <a href="https://github.com/SoosDev" data-ja>github.com/SoosDev →</a>
 </footer>
 
 <script>
-  function setLang(lang) {
-    document.body.className = 'lang-' + lang;
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-      if (lang === 'en') btn.classList.toggle('active', btn.textContent === 'EN');
-      else btn.classList.toggle('active', btn.textContent === '日本語');
-    });
-  }
-  const observer = new IntersectionObserver(
-    entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
-    { threshold: 0.07 }
-  );
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+// ── lang ──────────────────────────────────────
+function setLang(lang) {
+  document.body.className = 'lang-' + lang;
+  document.querySelectorAll('.lb').forEach(b => {
+    b.classList.toggle('on', lang === 'en' ? b.textContent === 'EN' : b.textContent === '日本語');
+  });
+  document.querySelectorAll('[data-en-t]').forEach(el => {
+    el.textContent = lang === 'en' ? el.dataset.enT : el.dataset.jaT;
+  });
+  // refresh detail bar language
+  const active = document.querySelector('.dn.act');
+  if (active) showDetail(active.dataset.id, lang);
+}
+
+// init SVG labels to Japanese
+document.querySelectorAll('[data-ja-t]').forEach(el => { el.textContent = el.dataset.jaT; });
+
+// ── diagram ───────────────────────────────────
+const details = {
+  'browser-upload': {
+    en: 'The client uploads a DAT or CSV file directly from their browser. The file is read as text — it is never stored on the server.',
+    ja: 'クライアントがブラウザから直接DATまたはCSVファイルをアップロード。ファイルはテキストとして読み取られ、サーバーには保存されない。'
+  },
+  'api-upload': {
+    en: 'POST /api/upload receives the raw text, splits it into lines, calls parseRawLine() on each valid line, and batch-inserts records into raw_records via PostgreSQL UNNEST.',
+    ja: 'POST /api/uploadが生テキストを受信し行に分割。有効な各行にparseRawLine()を呼び出し、PostgreSQL UNNESTでraw_recordsにバッチ挿入。'
+  },
+  'parser': {
+    en: 'parseRawLine() converts a raw comma-separated DAT line into a typed RawPersonRecord object. Pure function — no side effects, independently testable.',
+    ja: 'parseRawLine()がカンマ区切りのDAT行を型付きRawPersonRecordオブジェクトに変換する純粋関数。副作用なし、独立してテスト可能。'
+  },
+  'rds': {
+    en: 'AWS RDS PostgreSQL 16. The raw_records table stores individual face detection records. Row Level Security is active on all 6 tables — tenants cannot access each other\'s data.',
+    ja: 'AWS RDS PostgreSQL 16。raw_recordsテーブルが個別の顔検出レコードを格納。全6テーブルにRLSが有効 — テナント間のデータアクセスを防止。'
+  },
+  'box-agent': {
+    en: 'A Python script running on the billboard\'s box PC. Watches a configured directory for new DAT files and POSTs them automatically to /api/auto-upload using a Bearer API key.',
+    ja: '看板のbox PC上で動作するPythonスクリプト。設定ディレクトリで新規DATファイルを監視し、BearerAPIキーで/api/auto-uploadに自動POST。'
+  },
+  'api-auto': {
+    en: 'Verifies the Bearer API key, parses the lines, inserts records into raw_records for persistence, and simultaneously builds a KPI snapshot for the realtime store.',
+    ja: 'BearerAPIキーを検証し行をパース。raw_recordsに保存しつつ、同時にリアルタイムストア用のKPIスナップショットを生成。'
+  },
+  'snapshot': {
+    en: 'buildSnapshot() processes raw DAT lines into a RealtimeKPISnapshot — visitor count, satisfaction score, gender ratio, top age group, and emotion breakdown.',
+    ja: 'buildSnapshot()が生DATデータをRealtimeKPISnapshotに変換。来客数・満足度・性別比率・上位年齢層・感情内訳を含む。'
+  },
+  'memstore': {
+    en: 'In-memory Map<billboardId, snapshot> in the Node.js process. Fast reads for the SSE stream. Would need Redis if scaled to multiple App Runner instances.',
+    ja: 'Node.jsプロセス内のインメモリMap<billboardId, snapshot>。SSEストリームへの高速読み取りを実現。複数インスタンスにスケールする場合はRedisが必要。'
+  },
+  'dashboard': {
+    en: 'The main analytics dashboard. Fetches GET /api/dashboard-data on session selection and renders pre-calculated chart data. No aggregation in the browser.',
+    ja: 'メイン分析ダッシュボード。セッション選択時にGET /api/dashboard-dataを取得し計算済みのチャートデータをレンダリング。ブラウザでの集計なし。'
+  },
+  'api-dash': {
+    en: 'Reads raw_records with paginated 1000-row queries, runs all aggregators, and returns a fully populated ProcessedDashboardData object.',
+    ja: '1000行単位のページネーションクエリでraw_recordsを読み込み、全集計関数を実行してProcessedDashboardDataオブジェクトを返す。'
+  },
+  'processor': {
+    en: 'dataProcessor.ts orchestrates all aggregators: KPI, age distribution, gender ratio, emotion trends, time profiles. Result goes directly to the client.',
+    ja: 'dataProcessor.tsが全集計関数（KPI・年齢分布・性別比率・感情トレンド・時間帯）をオーケストレート。結果がクライアントに直接返される。'
+  },
+  'recharts': {
+    en: 'Recharts renders Bar, Line, and Pie charts from pre-aggregated data. PDF reports use print CSS — no library. CSV is UTF-8 BOM for Excel, generated in-browser.',
+    ja: 'Rechartsが集計済みデータからBar・Line・Pieチャートをレンダリング。PDFは印刷CSS（ライブラリ不使用）。CSVはExcel対応UTF-8 BOMをブラウザで生成。'
+  },
+  'device': {
+    en: 'A third-party device or the box agent POSTs raw detection lines to /api/realtime/push with a Bearer API key. Data goes only to the in-memory store — not persisted to RDS.',
+    ja: 'サードパーティ機器またはbox agentがBearerAPIキーで生検出データを/api/realtime/pushにPOST。データはインメモリストアにのみ書き込まれ、RDSには保存されない。'
+  },
+  'sse-store': {
+    en: 'The same in-memory KPI snapshot store. setSnapshot() writes, getSnapshot() reads. The SSE stream polls this every 3 seconds and pushes when updatedAt changes.',
+    ja: '同じインメモリKPIスナップショットストア。setSnapshot()で書き込み、getSnapshot()で読み出し。SSEストリームが3秒ごとにポーリングしupdatedAt変更時に送信。'
+  },
+  'sse-stream': {
+    en: 'Returns a ReadableStream with Content-Type: text/event-stream. Sends latest snapshot immediately on connect, polls for changes every 3s, heartbeat every 30s.',
+    ja: 'ReadableStreamをContent-Type: text/event-streamで返す。接続時に最新スナップショットを即時送信、3秒ごとに変更をポーリング、30秒ごとにハートビート。'
+  },
+  'sse-browser': {
+    en: 'Browser EventSource connects to the stream. Updates KPI cards on each message. Auto-reconnects after 5 seconds on error. Restricted to Pro plan users — verified server-side.',
+    ja: 'ブラウザのEventSourceがストリームに接続。メッセージごとにKPIカードを更新。エラー時は5秒後に自動再接続。Proプランのみ利用可能 — サーバーサイドで検証。'
+  },
+};
+
+function showDetail(id, lang) {
+  const d = details[id]; if (!d) return;
+  const node = document.querySelector(`.dn[data-id="${id}"]`);
+  document.getElementById('detail-name').textContent =
+    node ? node.querySelector('.dn-name').textContent : id;
+  document.getElementById('detail-text').textContent = lang === 'ja' ? d.ja : d.en;
+  document.getElementById('detail-bar').classList.add('show');
+}
+
+document.querySelectorAll('.dn').forEach(node => {
+  node.addEventListener('mouseenter', () => {
+    document.querySelectorAll('.dn').forEach(n => n.classList.remove('act'));
+    node.classList.add('act');
+    const lang = document.body.classList.contains('lang-ja') ? 'ja' : 'en';
+    showDetail(node.dataset.id, lang);
+  });
+});
+
+// ── reveal ────────────────────────────────────
+const ro = new IntersectionObserver(
+  entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('on'); }),
+  { threshold: 0.05 }
+);
+document.querySelectorAll('.reveal').forEach(el => ro.observe(el));
 </script>
 </body>
 </html>
