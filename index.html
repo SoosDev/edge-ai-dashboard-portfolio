@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Visitor Analytics Dashboard — Dmitry So</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300;0,7..72,400;0,7..72,500;1,7..72,400&family=BIZ+UDPGothic:wght@400;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+/* -- TOKENS ---- */
+:root {
+  --bg:        #ffffff;
+  --bg-raised: #f6f6f6;
+  --bg-inset:  #f0f0f0;
+  --border:    rgba(0,0,0,0.08);
+  --border2:   rgba(0,0,0,0.15);
+
+  --t1: #111111;
+  --t2: #333333;
+  --t3: #666666;
+  --t4: #999999;
+
+  --serif: 'Literata', Georgia, serif;
+  --sans:  'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  --mono:  'JetBrains Mono', 'Courier New', monospace;
+
+  --max: 880px;
+}
+
+/* -- RESET ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--t2);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.85;
+  font-weight: 400;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(0,0,0,0.12);
+  color: var(--t1);
+}
+
+/* -- LANG TOGGLE ---- */
+#lang-bar {
+  position: fixed; top: 0; right: 0; z-index: 100;
+  padding: 18px 32px;
+  display: flex; gap: 0;
+}
+.lb {
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: 0.12em; padding: 5px 14px;
+  border: 1px solid var(--border2);
+  background: rgba(255,255,255,0.92);
+  color: var(--t3); cursor: pointer;
+  transition: all 0.15s;
+  backdrop-filter: blur(8px);
+}
+.lb:first-child { border-radius: 3px 0 0 3px; }
+.lb:last-child  { border-radius: 0 3px 3px 0; border-left: none; }
+.lb.on { background: var(--t1); color: #ffffff; border-color: var(--t1); font-weight: 400; }
+.lb:hover:not(.on) { color: var(--t1); border-color: rgba(0,0,0,0.3); }
+
+/* -- LANG VISIBILITY ---- */
+[data-en], [data-ja] { display: none; }
+body.lang-en [data-en]  { display: block; }
+body.lang-en span[data-en],
+body.lang-en td[data-en],
+body.lang-en th[data-en],
+body.lang-en li[data-en],
+body.lang-en p[data-en]  { display: revert; }
+body.lang-ja [data-ja]  { display: block; }
+body.lang-ja span[data-ja],
+body.lang-ja td[data-ja],
+body.lang-ja th[data-ja],
+body.lang-ja li[data-ja],
+body.lang-ja p[data-ja]  { display: revert; }
+
+/* -- LAYOUT ---- */
+.sec {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 80px 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* -- HERO ---- */
+#hero {
+  padding: 140px 32px 100px;
+  max-width: var(--max);
+  margin: 0 auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-eyebrow {
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--t4); margin-bottom: 32px;
+}
+
+.hero-h1 {
+  font-family: var(--serif);
+  font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+  font-weight: 300; line-height: 1.15;
+  color: var(--t1); letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+.hero-sub {
+  font-family: var(--serif);
+  font-size: 18px; font-weight: 300;
+  color: var(--t3); font-style: italic;
+  margin-bottom: 36px;
+}
+
+.pill-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.pill {
+  font-family: var(--mono); font-size: 12px;
+  padding: 4px 12px; border-radius: 2px;
+  border: 1px solid var(--border2);
+  color: var(--t3); letter-spacing: 0.04em;
+  background: transparent;
+}
+
+/* -- SECTION HEADINGS ---- */
+.sec-label {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--t4); margin-bottom: 10px;
+}
+
+.sec-h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+  font-weight: 300; color: var(--t1);
+  line-height: 1.3; margin-bottom: 28px;
+  letter-spacing: -0.01em;
+}
+
+.prose {
+  font-size: 16px; color: var(--t2);
+  line-height: 1.9; margin-bottom: 20px;
+  max-width: 720px;
+}
+.prose:last-child { margin-bottom: 0; }
+
+/* -- ARCHITECTURE DIAGRAM ---- */
+.arch-diagram {
+  margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 560px;
+}
+
+.arch-box {
+  width: 100%;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 16px 22px;
+  background: var(--bg-raised);
+}
+
+.arch-box-head {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--t4);
+  margin-bottom: 4px;
+}
+
+.arch-box-name {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--t1);
+  margin-bottom: 4px;
+}
+
+.arch-box-desc {
+  font-size: 14px;
+  color: var(--t3);
+  line-height: 1.6;
+}
+
+.arch-arrow {
+  font-family: var(--mono);
+  font-size: 18px;
+  color: var(--t4);
+  padding: 6px 0 6px 24px;
+  line-height: 1;
+}
+
+.arch-callout {
+  margin-top: 36px;
+  border-left: 2px solid var(--t4);
+  padding: 18px 24px;
+  background: var(--bg-raised);
+  border-radius: 0 3px 3px 0;
+  max-width: 560px;
+}
+
+.arch-callout-q {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--t3);
+  margin-bottom: 10px;
+  letter-spacing: 0.04em;
+}
+
+.arch-callout-a {
+  font-size: 15px;
+  color: var(--t2);
+  line-height: 1.85;
+}
+
+/* -- CLOUD MAPPING ---- */
+.cloud-map {
+  margin-top: 36px;
+  max-width: 560px;
+}
+
+.cloud-map-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--t4);
+  margin-bottom: 14px;
+}
+
+.cloud-map-grid {
+  display: grid;
+  grid-template-columns: 1fr 24px 1fr;
+  gap: 6px 0;
+  align-items: center;
+}
+
+.cloud-map-grid span {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 6px 0;
+}
+
+.cm-label {
+  color: var(--t2);
+}
+
+.cm-arrow {
+  color: var(--t4);
+  text-align: center;
+}
+
+.cm-equiv {
+  color: var(--t3);
+}
+
+/* -- FEATURE LIST ---- */
+.feat-list { border-top: 1px solid var(--border); }
+.feat {
+  display: grid; grid-template-columns: 48px 1fr 1fr;
+  gap: 20px; padding: 22px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+}
+.feat-n {
+  font-family: var(--mono); font-size: 12px;
+  color: var(--t4); padding-top: 2px;
+}
+.feat-t { font-size: 16px; color: var(--t1); font-weight: 500; }
+.feat-d { font-size: 15px; color: var(--t2); line-height: 1.8; }
+
+/* -- CODE SHOWCASE ---- */
+.code-block {
+  margin-top: 32px;
+  margin-bottom: 48px;
+}
+
+.code-block:last-child {
+  margin-bottom: 0;
+}
+
+.code-block-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.code-block-title {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--t1);
+}
+
+.code-block-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--t4);
+  text-transform: uppercase;
+}
+
+.code-block-desc {
+  font-size: 14px;
+  color: var(--t3);
+  line-height: 1.7;
+  margin-bottom: 14px;
+  max-width: 640px;
+}
+
+pre.code {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: #2a2a2a;
+  tab-size: 2;
+  -moz-tab-size: 2;
+}
+
+pre.code .k  { color: #111111; font-weight: 400; }
+pre.code .s  { color: #555555; }
+pre.code .c  { color: #999999; font-style: italic; }
+pre.code .t  { color: #333333; }
+pre.code .f  { color: #1a1a1a; }
+pre.code .n  { color: #444444; }
+pre.code .p  { color: #777777; }
+
+/* -- AI SECTION ---- */
+.ai-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.ai-card {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 24px;
+  background: var(--bg-raised);
+}
+
+.ai-card-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--t4);
+  margin-bottom: 8px;
+}
+
+.ai-card-title {
+  font-size: 16px;
+  color: var(--t1);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.ai-card-body {
+  font-size: 14px;
+  color: var(--t2);
+  line-height: 1.8;
+}
+
+.ai-note {
+  margin-top: 32px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 20px 24px;
+  background: var(--bg-raised);
+}
+
+.ai-note-head {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--t4);
+  margin-bottom: 8px;
+}
+
+.ai-note-body {
+  font-size: 15px;
+  color: var(--t2);
+  line-height: 1.85;
+}
+
+/* -- DECISIONS ---- */
+.dec-list { border-top: 1px solid var(--border); }
+.dec {
+  padding: 28px 0; border-bottom: 1px solid var(--border);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+}
+.dec-q { font-size: 16px; color: var(--t1); font-weight: 500; line-height: 1.5; }
+.dec-a { font-size: 15px; color: var(--t2); line-height: 1.85; }
+
+.ic {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--bg-inset);
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  padding: 1px 6px;
+  color: var(--t2);
+}
+
+/* -- STACK TABLE ---- */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--t4); padding: 12px 16px;
+  text-align: left; border-bottom: 1px solid var(--border2);
+}
+.tbl td {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  font-size: 14px; vertical-align: top;
+}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl td:nth-child(1) { font-family: var(--mono); font-size: 12px; color: var(--t3); white-space: nowrap; }
+.tbl td:nth-child(2) { font-family: var(--mono); font-size: 13px; color: var(--t1); }
+.tbl td:nth-child(3) { color: var(--t2); font-size: 14px; }
+
+/* -- SECURITY ---- */
+.sec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.sec-item {
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-raised);
+}
+
+.sec-item-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--t4);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.sec-item-val {
+  font-size: 14px;
+  color: var(--t2);
+  line-height: 1.7;
+}
+
+/* -- TIMELINE ---- */
+.tl-list { border-top: 1px solid var(--border); }
+.tl-item {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 32px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: baseline;
+}
+.tl-item:last-child { border-bottom: none; }
+.tl-date {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--t3);
+  letter-spacing: 0.06em;
+}
+.tl-milestone {
+  font-size: 15px;
+  color: var(--t2);
+  line-height: 1.7;
+}
+
+/* -- FOOTER ---- */
+footer {
+  max-width: var(--max); margin: 0 auto;
+  padding: 48px 32px;
+}
+footer p {
+  font-size: 13px; color: var(--t4);
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+
+/* -- REVEAL ---- */
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.on { opacity: 1; transform: none; }
+
+/* -- RESPONSIVE ---- */
+@media (max-width: 680px) {
+  #hero { padding: 100px 20px 64px; }
+  .sec  { padding: 56px 20px; }
+  .feat { grid-template-columns: 36px 1fr; }
+  .feat-d { display: none; }
+  .dec  { grid-template-columns: 1fr; gap: 12px; }
+  .tl-item { grid-template-columns: 1fr; gap: 4px; }
+  .ai-grid { grid-template-columns: 1fr; }
+  .sec-grid { grid-template-columns: 1fr; }
+  footer { padding: 40px 20px; }
+  #lang-bar { padding: 14px 20px; }
+  pre.code { padding: 16px; font-size: 12px; }
+  .cloud-map-grid { font-size: 12px; }
+  .arch-diagram, .arch-callout, .cloud-map { max-width: 100%; }
+}
+</style>
+</head>
+<body class="lang-ja">
+
+<div id="lang-bar">
+  <button class="lb" onclick="setLang('en')">EN</button>
+  <button class="lb on" onclick="setLang('ja')">JA</button>
+</div>
+
+<!-- ====== S01 — HERO ====== -->
+<section id="hero" class="reveal">
+  <p class="hero-eyebrow">Portfolio / B2B SaaS / 2026</p>
+  <h1 class="hero-h1">Visitor Analytics Dashboard</h1>
+  <p class="hero-sub" data-en>B2B SaaS analytics platform for edge AI camera data — solo-built, production-deployed on AWS</p>
+  <p class="hero-sub" data-ja>エッジAIカメラデータのB2B SaaS分析基盤 — ソロ開発・AWS本番運用中</p>
+  <div class="pill-row">
+    <span class="pill">Feb – May 2026</span>
+    <span class="pill" data-en>Solo project</span>
+    <span class="pill" data-ja>個人開発</span>
+    <span class="pill" data-en>~4 months</span>
+    <span class="pill" data-ja>約4ヶ月</span>
+    <span class="pill" data-en>In production</span>
+    <span class="pill" data-ja>本番稼働中</span>
+  </div>
+</section>
+
+
+<!-- ====== S02 — PROBLEM & CONTEXT ====== -->
+<section class="sec reveal">
+  <p class="sec-label">01 · <span data-en>Problem &amp; Context</span><span data-ja>背景と課題</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Why this system needed to exist</span>
+    <span data-ja>なぜこのシステムが必要だったか</span>
+  </h2>
+  <p class="prose" data-en>A restaurant chain in Japan deployed edge AI cameras with face detection at multiple locations — capturing visitor demographics (age, gender) and emotional responses in real time. But the data sat in raw DAT files on local machines. No centralized dashboard, no trend analysis, no cross-location comparison. Each location generated hundreds of records daily with zero visibility upstream. The company needed a multi-tenant SaaS platform that could ingest this IoT data, produce actionable analytics, and scale across locations — built and maintained by a single developer within a constrained timeline.</p>
+  <p class="prose" data-ja>国内の飲食チェーンが複数店舗にエッジAIカメラ（顔検出）を設置し、来客の属性（年齢・性別）と感情反応をリアルタイムに取得していた。しかしデータはローカルのDATファイルに留まり、一元的なダッシュボード・トレンド分析・拠点間比較は存在しなかった。各拠点が日々数百件のレコードを生成しても、上流への可視性はゼロ。IoTデータを取り込み、実用的な分析を提供し、拠点横断でスケールするマルチテナントSaaSを、一人の開発者が限られた期間内に構築・運用する必要があった。</p>
+</section>
+
+
+<!-- ====== S03 — ARCHITECTURE ====== -->
+<section class="sec reveal">
+  <p class="sec-label">02 · <span data-en>Architecture</span><span data-ja>アーキテクチャ</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Full-stack on a single deployment unit</span>
+    <span data-ja>単一デプロイ単位のフルスタック構成</span>
+  </h2>
+  <p class="prose" data-en>A monolithic Next.js application deployed on AWS App Runner. Frontend, API routes, and background jobs share one codebase, one build artifact, and one health check. This eliminates cross-service coordination overhead for a solo-maintained production system.</p>
+  <p class="prose" data-ja>AWS App Runner上にデプロイしたモノリシックNext.jsアプリケーション。フロントエンド・APIルート・バックグラウンドジョブが1つのコードベース・1つのビルド成果物・1つのヘルスチェックを共有。ソロ運用の本番システムでサービス間の調整オーバーヘッドを排除。</p>
+
+  <div class="arch-diagram">
+    <div class="arch-box">
+      <p class="arch-box-head" data-en>Frontend + Server</p>
+      <p class="arch-box-head" data-ja>フロントエンド + サーバー</p>
+      <p class="arch-box-name">Next.js 16 + TypeScript strict + Tailwind CSS v4</p>
+      <p class="arch-box-desc" data-en>Full-stack deployment on AWS App Runner (Node.js 22). Client components for dashboards, API routes for server logic. Shared types between layers.</p>
+      <p class="arch-box-desc" data-ja>AWS App Runner上のフルスタックデプロイ（Node.js 22）。ダッシュボード用クライアントコンポーネント、サーバーロジック用APIルート。レイヤー間で型を共有。</p>
+    </div>
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-box">
+      <p class="arch-box-head" data-en>API Layer</p>
+      <p class="arch-box-head" data-ja>APIレイヤー</p>
+      <p class="arch-box-name">Next.js API Routes + JWT Middleware</p>
+      <p class="arch-box-desc" data-en>RESTful endpoints with httpOnly cookie auth. Parameterized SQL queries. Rate limiting per endpoint. SSE streaming for real-time data.</p>
+      <p class="arch-box-desc" data-ja>httpOnlyクッキー認証のRESTfulエンドポイント。パラメータ化SQLクエリ。エンドポイント別レート制限。リアルタイムデータ用SSEストリーミング。</p>
+    </div>
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-box">
+      <p class="arch-box-head" data-en>Database</p>
+      <p class="arch-box-head" data-ja>データベース</p>
+      <p class="arch-box-name">PostgreSQL (AWS RDS)</p>
+      <p class="arch-box-desc" data-en>7 tables with Row-Level Security enforced via session variables. Parameterized queries only — no ORM, no string concatenation.</p>
+      <p class="arch-box-desc" data-ja>セッション変数によるRow-Level Securityを適用した7テーブル。パラメータ化クエリのみ — ORM不使用、文字列結合なし。</p>
+    </div>
+  </div>
+
+  <div class="arch-callout">
+    <p class="arch-callout-q" data-en>Why full-stack Next.js on App Runner instead of separate frontend and backend?</p>
+    <p class="arch-callout-q" data-ja>フロントとバックを分離せず、App Runner上のフルスタックNext.jsにした理由</p>
+    <p class="arch-callout-a" data-en>One deployment unit means one build artifact, one health check, one set of environment variables, and shared TypeScript types between client and server. For a solo-maintained B2B SaaS, this tradeoff is a strict win: simpler deployment, simpler debugging, zero cross-service latency. App Runner handles auto-scaling and TLS termination — no ECS task definitions or ALB configuration required.</p>
+    <p class="arch-callout-a" data-ja>1つのデプロイ単位にまとめることで、ビルド成果物・ヘルスチェック・環境変数がすべて1つになり、クライアントとサーバー間でTypeScript型を共有できる。ソロ運用のB2B SaaSでは、デプロイ・デバッグの簡素化とサービス間レイテンシゼロのトレードオフが明確に有利。App Runnerがオートスケーリングとtls終端を処理し、ECSタスク定義やALB設定が不要。</p>
+  </div>
+
+  <div class="cloud-map">
+    <p class="cloud-map-title" data-en>AWS Services Used</p>
+    <p class="cloud-map-title" data-ja>使用AWSサービス</p>
+    <div class="cloud-map-grid">
+      <span class="cm-label">App Runner</span>
+      <span class="cm-arrow">=</span>
+      <span class="cm-equiv" data-en>Compute (auto-scaling)</span>
+      <span class="cm-equiv" data-ja>コンピュート（オートスケール）</span>
+      <span class="cm-label">RDS PostgreSQL</span>
+      <span class="cm-arrow">=</span>
+      <span class="cm-equiv" data-en>Managed database + RLS</span>
+      <span class="cm-equiv" data-ja>マネージドDB + RLS</span>
+      <span class="cm-label">SES v2</span>
+      <span class="cm-arrow">=</span>
+      <span class="cm-equiv" data-en>Transactional email (reports)</span>
+      <span class="cm-equiv" data-ja>トランザクションメール（レポート）</span>
+      <span class="cm-label">Secrets Manager</span>
+      <span class="cm-arrow">=</span>
+      <span class="cm-equiv" data-en>Secure credential storage</span>
+      <span class="cm-equiv" data-ja>認証情報の安全な管理</span>
+      <span class="cm-label">EventBridge Scheduler</span>
+      <span class="cm-arrow">=</span>
+      <span class="cm-equiv" data-en>Cron job orchestration</span>
+      <span class="cm-equiv" data-ja>定期ジョブ発火</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== S04 — FEATURES ====== -->
+<section class="sec reveal">
+  <p class="sec-label">03 · <span data-en>Features</span><span data-ja>機能一覧</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Platform Capabilities</span>
+    <span data-ja>プラットフォームの主要機能</span>
+  </h2>
+  <div class="feat-list">
+
+    <div class="feat">
+      <span class="feat-n">01</span>
+      <span class="feat-t" data-en>Auth &amp; Multi-Tenancy</span>
+      <span class="feat-t" data-ja>認証・マルチテナント</span>
+      <span class="feat-d" data-en>JWT signed with HS256, stored in httpOnly secure cookies. Row-Level Security enforced at the database layer via PostgreSQL session variables — tenant isolation is guaranteed regardless of application code. Rate-limited login with IP-based brute-force protection.</span>
+      <span class="feat-d" data-ja>HS256署名のJWTをhttpOnlyセキュアクッキーに格納。PostgreSQLセッション変数によるRow-Level Securityをデータベース層で適用し、アプリケーションコードに依存しないテナント分離を保証。IPベースのブルートフォース防止付きレート制限ログイン。</span>
+    </div>
+
+    <div class="feat">
+      <span class="feat-n">02</span>
+      <span class="feat-t" data-en>IoT Data Pipeline</span>
+      <span class="feat-t" data-ja>IoTデータパイプライン</span>
+      <span class="feat-d" data-en>Edge AI cameras output DAT/CSV files with face detection data. The upload pipeline parses raw lines, normalizes emotion scores, runs 6 specialized aggregators (age, gender, emotion trends, KPI, time profiles, sales), and batch-inserts via SQL UNNEST — never row-by-row loops.</span>
+      <span class="feat-d" data-ja>エッジAIカメラがDAT/CSVファイルで顔検出データを出力。アップロードパイプラインが生データを解析、感情スコアを正規化、6種の集計器（年齢・性別・感情トレンド・KPI・時間帯・売上）を実行し、SQL UNNESTでバッチ挿入 — 行単位ループは不使用。</span>
+    </div>
+
+    <div class="feat">
+      <span class="feat-n">03</span>
+      <span class="feat-t" data-en>Real-Time SSE Streaming</span>
+      <span class="feat-t" data-ja>リアルタイムSSEストリーミング</span>
+      <span class="feat-d" data-en>Hardware devices push detection data via authenticated API. The server builds live KPI snapshots and broadcasts to connected dashboard clients via Server-Sent Events. Billboard-scoped subscriber management with automatic error-based cleanup.</span>
+      <span class="feat-d" data-ja>ハードウェアデバイスが認証済みAPIでデータをプッシュ。サーバーがライブKPIスナップショットを構築し、Server-Sent Eventsで接続中のダッシュボードに配信。拠点別のサブスクライバ管理とエラーベースの自動クリーンアップ。</span>
+    </div>
+
+    <div class="feat">
+      <span class="feat-n">04</span>
+      <span class="feat-t" data-en>Analytics Dashboard</span>
+      <span class="feat-t" data-ja>分析ダッシュボード</span>
+      <span class="feat-d" data-en>KPI cards with trend comparison (daily, weekly, monthly). Four chart types: age distribution, gender ratio, emotion trends over time, and time-of-day visitor profiles. Server-side aggregation for datasets with 10,000+ records per session.</span>
+      <span class="feat-d" data-ja>日次・週次・月次のトレンド比較付きKPIカード。4種のチャート：年齢分布・性別比・時間帯別感情トレンド・時間帯別来客プロファイル。セッションあたり10,000件以上のレコードに対応するサーバーサイド集計。</span>
+    </div>
+
+    <div class="feat">
+      <span class="feat-n">05</span>
+      <span class="feat-t" data-en>Multi-Session Comparison</span>
+      <span class="feat-t" data-ja>マルチセッション比較</span>
+      <span class="feat-d" data-en>Select multiple sessions via calendar picker. Synchronized side-by-side charts compare age distribution, emotion scores, time-slot visitors, and gender ratios across dates and locations. Billboard filtering for multi-location setups.</span>
+      <span class="feat-d" data-ja>カレンダーピッカーで複数セッションを選択。年齢分布・感情スコア・時間帯別来客数・性別比を日付・拠点横断で同期比較。マルチ拠点構成向け拠点フィルタリング。</span>
+    </div>
+
+    <div class="feat">
+      <span class="feat-n">06</span>
+      <span class="feat-t" data-en>Sales POS Integration</span>
+      <span class="feat-t" data-ja>売上POSデータ連携</span>
+      <span class="feat-d" data-en>Separate upload pipeline for POS CSV data. Column mapping UI handles varying POS export formats. Analytics by product, category, hourly sales, and payment method. Revenue KPI cards with top-item and top-category breakdowns.</span>
+      <span class="feat-d" data-ja>POSデータ用CSVアップロードパイプライン。カラムマッピングUIが異なるPOSエクスポート形式に対応。商品別・カテゴリ別・時間帯別・決済方法別の分析。売上上位の商品・カテゴリ内訳付きKPIカード。</span>
+    </div>
+
+    <div class="feat">
+      <span class="feat-n">07</span>
+      <span class="feat-t" data-en>Automated Email Reports</span>
+      <span class="feat-t" data-ja>自動メールレポート</span>
+      <span class="feat-d" data-en>EventBridge Scheduler triggers a cron endpoint. The system aggregates KPI summaries across recent sessions, renders HTML email templates, and delivers via AWS SES. Configurable frequency: weekly or monthly. Per-client recipient settings.</span>
+      <span class="feat-d" data-ja>EventBridge Schedulerがcronエンドポイントを発火。直近セッションのKPIサマリーを集計し、HTMLメールテンプレートをレンダリング、AWS SESで配信。頻度は週次・月次で設定可能。クライアント別の受信者設定。</span>
+    </div>
+
+    <div class="feat">
+      <span class="feat-n">08</span>
+      <span class="feat-t" data-en>Stripe Billing</span>
+      <span class="feat-t" data-ja>Stripe課金</span>
+      <span class="feat-d" data-en>Webhook-driven subscription management. Plan transitions (Basic/Pro) handled exclusively via Stripe webhook events — never on redirect. Pro features gated by a composable component on the client and server-side plan validation on every protected route.</span>
+      <span class="feat-d" data-ja>Webhookドリブンのサブスクリプション管理。プラン移行（Basic/Pro）はStripe Webhookイベントのみで処理 — リダイレクト時は不実行。Pro機能はクライアント側のコンポーザブルコンポーネントと、全保護ルートのサーバーサイドプラン検証でゲーティング。</span>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ====== S05 — CODE SHOWCASE ====== -->
+<section class="sec reveal">
+  <p class="sec-label">04 · <span data-en>Code Showcase</span><span data-ja>コードハイライト</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Selected Implementation Patterns</span>
+    <span data-ja>実装パターン抜粋</span>
+  </h2>
+  <p class="prose" data-en>Representative patterns from the codebase. Variable names and structure simplified; proprietary implementation details omitted.</p>
+  <p class="prose" data-ja>コードベースからの代表的なパターン。変数名や構造を簡略化し、実装の詳細は省略。</p>
+
+  <!-- Snippet 1: RLS Query Pattern -->
+  <div class="code-block">
+    <div class="code-block-head">
+      <span class="code-block-title" data-en>Row-Level Security Query Pattern</span>
+      <span class="code-block-title" data-ja>Row-Level Securityクエリパターン</span>
+      <span class="code-block-tag">Security</span>
+    </div>
+    <p class="code-block-desc" data-en>Every tenant-scoped query sets a PostgreSQL session variable via set_config, wrapped in a transaction. RLS policies use this variable to filter rows — the application cannot bypass isolation even if a bug omits a WHERE clause.</p>
+    <p class="code-block-desc" data-ja>テナントスコープの全クエリがset_configでPostgreSQLセッション変数を設定し、トランザクションで囲む。RLSポリシーがこの変数で行をフィルタし、WHERE句の漏れがあってもアプリケーション側から分離をバイパスできない。</p>
+<pre class="code"><span class="k">export async function</span> <span class="f">queryAsUser</span>&lt;<span class="t">T</span>&gt;(
+  email<span class="p">:</span> <span class="t">string</span>,
+  sql<span class="p">:</span> <span class="t">string</span>,
+  params<span class="p">?:</span> <span class="t">unknown</span>[]
+)<span class="p">:</span> <span class="t">Promise</span>&lt;<span class="t">QueryResult</span>&lt;<span class="t">T</span>&gt;&gt; {
+  <span class="k">const</span> client <span class="p">=</span> <span class="k">await</span> pool.<span class="f">connect</span>()
+  <span class="k">try</span> {
+    <span class="k">await</span> client.<span class="f">query</span>(<span class="s">'BEGIN'</span>)
+    <span class="k">await</span> client.<span class="f">query</span>(
+      <span class="s">`SELECT set_config('app.current_user_email', $1, true)`</span>,
+      [email]
+    )
+    <span class="k">const</span> result <span class="p">=</span> <span class="k">await</span> client.<span class="f">query</span>&lt;<span class="t">T</span>&gt;(sql, params)
+    <span class="k">await</span> client.<span class="f">query</span>(<span class="s">'COMMIT'</span>)
+    <span class="k">return</span> result
+  } <span class="k">catch</span> (err) {
+    <span class="k">await</span> client.<span class="f">query</span>(<span class="s">'ROLLBACK'</span>)
+    <span class="k">throw</span> err
+  } <span class="k">finally</span> {
+    client.<span class="f">release</span>()
+  }
+}
+
+<span class="c">// Admin bypass: no session variable, no RLS filtering</span>
+<span class="k">export async function</span> <span class="f">queryAsAdmin</span>&lt;<span class="t">T</span>&gt;(
+  sql<span class="p">:</span> <span class="t">string</span>,
+  params<span class="p">?:</span> <span class="t">unknown</span>[]
+)<span class="p">:</span> <span class="t">Promise</span>&lt;<span class="t">QueryResult</span>&lt;<span class="t">T</span>&gt;&gt; {
+  <span class="k">return</span> pool.<span class="f">query</span>&lt;<span class="t">T</span>&gt;(sql, params)
+}</pre>
+  </div>
+
+  <!-- Snippet 2: Data Processing Pipeline -->
+  <div class="code-block">
+    <div class="code-block-head">
+      <span class="code-block-title" data-en>Data Processing Pipeline</span>
+      <span class="code-block-title" data-ja>データ処理パイプライン</span>
+      <span class="code-block-tag">Architecture</span>
+    </div>
+    <p class="code-block-desc" data-en>Raw camera output flows through a staged pipeline: parse line format, normalize emotion scores into three categories, then fan out to six independent aggregators. Each aggregator is a pure function with a single concern — testable in isolation.</p>
+    <p class="code-block-desc" data-ja>カメラの生出力が段階的パイプラインを通過：行フォーマット解析、感情スコアの3カテゴリ正規化、6つの独立した集計器にファンアウト。各集計器は単一責務の純粋関数で、単体テスト可能。</p>
+<pre class="code"><span class="k">export function</span> <span class="f">processRecords</span>(lines<span class="p">:</span> <span class="t">string</span>[])<span class="p">:</span> <span class="t">ProcessedData</span> {
+  <span class="c">// Stage 1: Parse raw DAT format into typed records</span>
+  <span class="k">const</span> parsed <span class="p">=</span> lines.<span class="f">map</span>(<span class="f">parseRawLine</span>)
+
+  <span class="c">// Stage 2: Normalize five emotion rates into three categories</span>
+  <span class="c">//   happy -> satisfied, neutral+surprise -> neutral, sad+anger -> dissatisfied</span>
+  <span class="k">const</span> normalized <span class="p">=</span> parsed.<span class="f">map</span>(<span class="f">normalizeEmotion</span>)
+
+  <span class="c">// Stage 3: Fan out to independent aggregators</span>
+  <span class="k">return</span> {
+    kpiStats<span class="p">:</span>      <span class="f">formatKPIs</span>(<span class="f">aggregateKPIs</span>(parsed)),
+    ageDistribution<span class="p">:</span> <span class="f">aggregateAgeDistribution</span>(parsed),
+    genderRatio<span class="p">:</span>    <span class="f">aggregateGenderRatio</span>(parsed),
+    emotionTrends<span class="p">:</span>  <span class="f">aggregateEmotionTrends</span>(normalized),
+    timeProfiles<span class="p">:</span>   <span class="f">aggregateTimeProfiles</span>(parsed),
+  }
+}</pre>
+  </div>
+
+  <!-- Snippet 3: SSE Subscriber Management -->
+  <div class="code-block">
+    <div class="code-block-head">
+      <span class="code-block-title" data-en>Real-Time SSE Subscriber Management</span>
+      <span class="code-block-title" data-ja>リアルタイムSSEサブスクライバ管理</span>
+      <span class="code-block-tag">Systems</span>
+    </div>
+    <p class="code-block-desc" data-en>Billboard-scoped subscriber map persisted across hot reloads via global state. When a device pushes new data, the server encodes a JSON payload and enqueues it to every connected client for that billboard. Failed enqueues (disconnected clients) are cleaned up immediately.</p>
+    <p class="code-block-desc" data-ja>グローバル状態でホットリロード間も保持される拠点別サブスクライバマップ。デバイスが新データをプッシュすると、サーバーがJSONペイロードをエンコードし、該当拠点の全接続クライアントにエンキュー。エンキュー失敗（切断クライアント）は即時クリーンアップ。</p>
+<pre class="code"><span class="k">type</span> <span class="t">Controller</span> <span class="p">=</span> <span class="t">ReadableStreamDefaultController</span>&lt;<span class="t">Uint8Array</span>&gt;
+
+<span class="k">const</span> subscribers<span class="p">:</span> <span class="t">Map</span>&lt;<span class="t">number</span>, <span class="t">Set</span>&lt;<span class="t">Controller</span>&gt;&gt; <span class="p">=</span> <span class="k">new</span> Map()
+
+<span class="k">export function</span> <span class="f">broadcast</span>(
+  billboardId<span class="p">:</span> <span class="t">number</span>,
+  payload<span class="p">:</span> <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;
+)<span class="p">:</span> <span class="t">void</span> {
+  <span class="k">const</span> subs <span class="p">=</span> subscribers.<span class="f">get</span>(billboardId)
+  <span class="k">if</span> (!subs <span class="p">||</span> subs.size <span class="p">===</span> <span class="n">0</span>) <span class="k">return</span>
+
+  <span class="k">const</span> encoded <span class="p">=</span> <span class="k">new</span> TextEncoder().<span class="f">encode</span>(
+    <span class="s">`data: ${JSON.stringify(payload)}\n\n`</span>
+  )
+
+  <span class="k">for</span> (<span class="k">const</span> ctrl <span class="k">of</span> subs) {
+    <span class="k">try</span> {
+      ctrl.<span class="f">enqueue</span>(encoded)
+    } <span class="k">catch</span> {
+      subs.<span class="f">delete</span>(ctrl)  <span class="c">// client disconnected</span>
+    }
+  }
+
+  <span class="k">if</span> (subs.size <span class="p">===</span> <span class="n">0</span>) subscribers.<span class="f">delete</span>(billboardId)
+}</pre>
+  </div>
+
+  <!-- Snippet 4: Anomaly Detection -->
+  <div class="code-block">
+    <div class="code-block-head">
+      <span class="code-block-title" data-en>Statistical Anomaly Detection</span>
+      <span class="code-block-title" data-ja>統計的異常検知</span>
+      <span class="code-block-tag">Algorithm</span>
+    </div>
+    <p class="code-block-desc" data-en>Flags upload sessions with record counts that deviate significantly from the rolling mean. Groups by location to prevent cross-billboard noise. Requires a minimum baseline of prior sessions before flagging — avoids false positives on new locations.</p>
+    <p class="code-block-desc" data-ja>ローリング平均からレコード数が大きく逸脱するアップロードセッションをフラグ。拠点別にグループ化してノイズを排除。新規拠点での誤検知を防ぐため、最小ベースライン数の過去セッションを要求。</p>
+<pre class="code"><span class="k">const</span> THRESHOLD <span class="p">=</span> <span class="n">0.4</span>
+<span class="k">const</span> MIN_BASELINE <span class="p">=</span> <span class="n">3</span>
+<span class="k">const</span> WINDOW <span class="p">=</span> <span class="n">10</span>
+
+<span class="k">export function</span> <span class="f">detectAnomalies</span>(
+  sessions<span class="p">:</span> <span class="t">SessionEntry</span>[],
+  threshold <span class="p">=</span> THRESHOLD
+)<span class="p">:</span> <span class="t">Set</span>&lt;<span class="t">number</span>&gt; {
+  <span class="k">const</span> anomalous <span class="p">=</span> <span class="k">new</span> Set&lt;<span class="t">number</span>&gt;()
+
+  <span class="c">// Group sessions by location to prevent cross-billboard noise</span>
+  <span class="k">const</span> groups <span class="p">=</span> <span class="f">groupByLocation</span>(sessions)
+
+  <span class="k">for</span> (<span class="k">const</span> group <span class="k">of</span> groups.<span class="f">values</span>()) {
+    <span class="k">const</span> sorted <span class="p">=</span> <span class="f">sortByDate</span>(group)
+
+    <span class="k">for</span> (<span class="k">let</span> i <span class="p">=</span> <span class="n">0</span>; i &lt; sorted.length; i++) {
+      <span class="k">const</span> prior <span class="p">=</span> sorted.<span class="f">slice</span>(
+        Math.<span class="f">max</span>(<span class="n">0</span>, i <span class="p">-</span> WINDOW), i
+      )
+      <span class="k">if</span> (prior.length &lt; MIN_BASELINE) <span class="k">continue</span>
+
+      <span class="k">const</span> mean <span class="p">=</span> <span class="f">average</span>(prior.<span class="f">map</span>(s <span class="p">=&gt;</span> s.recordCount))
+      <span class="k">if</span> (mean <span class="p">===</span> <span class="n">0</span>) <span class="k">continue</span>
+
+      <span class="k">const</span> deviation <span class="p">=</span>
+        Math.<span class="f">abs</span>(sorted[i].recordCount <span class="p">-</span> mean) <span class="p">/</span> mean
+      <span class="k">if</span> (deviation &gt; threshold) {
+        anomalous.<span class="f">add</span>(sorted[i].id)
+      }
+    }
+  }
+
+  <span class="k">return</span> anomalous
+}</pre>
+  </div>
+
+  <!-- Snippet 5: Rate Limiter -->
+  <div class="code-block">
+    <div class="code-block-head">
+      <span class="code-block-title" data-en>In-Memory Rate Limiter with Auto-Pruning</span>
+      <span class="code-block-title" data-ja>自動プルーニング付きインメモリレートリミッタ</span>
+      <span class="code-block-tag">Security</span>
+    </div>
+    <p class="code-block-desc" data-en>Sliding-window counter keyed by action + identifier (e.g., login:IP). Expired entries auto-pruned every 5 minutes to prevent memory leaks. Returns typed result with retryAfter for HTTP 429 responses. No external dependencies — appropriate for a single-instance deployment.</p>
+    <p class="code-block-desc" data-ja>アクション+識別子（例：login:IP）をキーとするスライディングウィンドウカウンタ。メモリリーク防止のため期限切れエントリを5分毎に自動削除。HTTP 429レスポンス用にretryAfter付きの型付き結果を返却。外部依存なし — シングルインスタンスデプロイに適合。</p>
+<pre class="code"><span class="k">interface</span> <span class="t">Entry</span> { count<span class="p">:</span> <span class="t">number</span>; resetAt<span class="p">:</span> <span class="t">number</span> }
+
+<span class="k">const</span> store <span class="p">=</span> <span class="k">new</span> Map&lt;<span class="t">string</span>, <span class="t">Entry</span>&gt;()
+
+<span class="c">// Auto-prune expired entries every 5 minutes</span>
+<span class="f">setInterval</span>(() <span class="p">=&gt;</span> {
+  <span class="k">const</span> now <span class="p">=</span> Date.<span class="f">now</span>()
+  <span class="k">for</span> (<span class="k">const</span> [key, entry] <span class="k">of</span> store) {
+    <span class="k">if</span> (entry.resetAt &lt;<span class="p">=</span> now) store.<span class="f">delete</span>(key)
+  }
+}, <span class="n">5</span> <span class="p">*</span> <span class="n">60</span> <span class="p">*</span> <span class="n">1000</span>)
+
+<span class="k">export interface</span> <span class="t">RateLimitResult</span> {
+  limited<span class="p">:</span> <span class="t">boolean</span>
+  retryAfter<span class="p">:</span> <span class="t">number</span>
+}
+
+<span class="k">export function</span> <span class="f">checkRate</span>(
+  key<span class="p">:</span> <span class="t">string</span>, max<span class="p">:</span> <span class="t">number</span>, windowMs<span class="p">:</span> <span class="t">number</span>
+)<span class="p">:</span> <span class="t">RateLimitResult</span> {
+  <span class="k">const</span> now <span class="p">=</span> Date.<span class="f">now</span>()
+  <span class="k">let</span> entry <span class="p">=</span> store.<span class="f">get</span>(key)
+
+  <span class="k">if</span> (!entry <span class="p">||</span> entry.resetAt &lt;<span class="p">=</span> now) {
+    store.<span class="f">set</span>(key, { count<span class="p">:</span> <span class="n">1</span>, resetAt<span class="p">:</span> now <span class="p">+</span> windowMs })
+    <span class="k">return</span> { limited<span class="p">:</span> <span class="k">false</span>, retryAfter<span class="p">:</span> <span class="n">0</span> }
+  }
+
+  entry.count <span class="p">+=</span> <span class="n">1</span>
+  <span class="k">if</span> (entry.count &gt; max) {
+    <span class="k">return</span> {
+      limited<span class="p">:</span> <span class="k">true</span>,
+      retryAfter<span class="p">:</span> Math.<span class="f">ceil</span>(
+        (entry.resetAt <span class="p">-</span> now) <span class="p">/</span> <span class="n">1000</span>
+      ),
+    }
+  }
+  <span class="k">return</span> { limited<span class="p">:</span> <span class="k">false</span>, retryAfter<span class="p">:</span> <span class="n">0</span> }
+}</pre>
+  </div>
+</section>
+
+
+<!-- ====== S06 — AI INTEGRATION ====== -->
+<section class="sec reveal">
+  <p class="sec-label">05 · <span data-en>AI Integration</span><span data-ja>AI活用</span></p>
+  <h2 class="sec-h2">
+    <span data-en>AI as a development collaborator, not an autopilot</span>
+    <span data-ja>開発の自動操縦ではなく、協力者としてのAI</span>
+  </h2>
+  <p class="prose" data-en>AI coding assistants were used as a review and acceleration tool throughout development — the same way an engineer would consult a senior colleague.</p>
+  <p class="prose" data-ja>AI活用は開発全体を通じたレビュー・加速ツールとして — エンジニアがシニアの同僚に相談するのと同じ形で使用した。</p>
+
+  <div class="ai-grid">
+    <div class="ai-card">
+      <p class="ai-card-label" data-en>Use Case 1</p>
+      <p class="ai-card-label" data-ja>活用 1</p>
+      <p class="ai-card-title" data-en>Architecture Review</p>
+      <p class="ai-card-title" data-ja>アーキテクチャレビュー</p>
+      <p class="ai-card-body" data-en>Evaluated trade-offs on key design decisions: RLS via session variables vs. application-level WHERE clauses, JWT cookie strategy vs. token-in-header, server-side vs. client-side aggregation for chart data. AI surfaced edge cases and alternative approaches — the developer made all final decisions.</p>
+      <p class="ai-card-body" data-ja>主要設計のトレードオフを評価：セッション変数RLS vs アプリケーションレベルWHERE句、JWTクッキー戦略 vs ヘッダー内トークン、サーバーサイドvs クライアントサイド集計。AIがエッジケースと代替案を提示 — 最終判断はすべて開発者が実施。</p>
+    </div>
+    <div class="ai-card">
+      <p class="ai-card-label" data-en>Use Case 2</p>
+      <p class="ai-card-label" data-ja>活用 2</p>
+      <p class="ai-card-title" data-en>Code Review &amp; Edge Case Detection</p>
+      <p class="ai-card-title" data-ja>コードレビュー・エッジケース検出</p>
+      <p class="ai-card-body" data-en>Reviewed security patterns (parameterized queries, rate limiting logic, cookie flags), parser edge cases (malformed DAT lines, encoding issues), and SQL query optimization (batch insert via UNNEST vs. multi-row VALUES). Caught issues that would otherwise surface only in production.</p>
+      <p class="ai-card-body" data-ja>セキュリティパターン（パラメータ化クエリ・レート制限ロジック・クッキーフラグ）、パーサーのエッジケース（不正DAT行・エンコーディング問題）、SQLクエリ最適化（UNNEST vs 複数行VALUES）をレビュー。本番でしか発見できない問題を事前に検出。</p>
+    </div>
+  </div>
+
+  <div class="ai-note">
+    <p class="ai-note-head" data-en>On AI-Assisted Development</p>
+    <p class="ai-note-head" data-ja>AI支援開発について</p>
+    <p class="ai-note-body" data-en>AI coding assistants accelerated review cycles and caught edge cases earlier in the development process. All architectural decisions, database schema design, algorithm selection, and production deployment choices were made by the developer. The patterns in this codebase — RLS isolation, pipeline architecture, SSE subscriber management, anomaly detection — reflect deliberate engineering judgment, not generated output.</p>
+    <p class="ai-note-body" data-ja>AIコーディングアシスタントはレビューサイクルを加速し、開発プロセスの早い段階でエッジケースを検出した。全てのアーキテクチャ決定・データベーススキーマ設計・アルゴリズム選択・本番デプロイの判断は開発者が行った。本コードベースのパターン — RLS分離・パイプラインアーキテクチャ・SSEサブスクライバ管理・異常検知 — は意図的なエンジニアリング判断の結果であり、生成出力ではない。</p>
+  </div>
+</section>
+
+
+<!-- ====== S07 — DECISIONS ====== -->
+<section class="sec reveal">
+  <p class="sec-label">06 · <span data-en>Design Rationale</span><span data-ja>技術的意思決定</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Technical Decisions and Why</span>
+    <span data-ja>主要な技術選定とその理由</span>
+  </h2>
+  <div class="dec-list">
+
+    <div class="dec">
+      <p class="dec-q" data-en>Why Next.js on App Runner instead of Lambda?</p>
+      <p class="dec-q" data-ja>LambdaではなくApp Runner上のNext.jsを選んだ理由</p>
+      <p class="dec-a" data-en>App Runner provides a persistent Node.js process — no cold starts, no Lambda payload size limits, and SSE streaming works natively. A single <span class="ic">apprunner.yaml</span> replaces ECS task definitions, ALB configuration, and auto-scaling policies. For a solo-maintained SaaS with real-time requirements, operational simplicity outweighs Lambda's per-request pricing.</p>
+      <p class="dec-a" data-ja>App Runnerは永続Node.jsプロセスを提供 — コールドスタートなし、Lambdaのペイロードサイズ制限なし、SSEストリーミングがネイティブ動作。単一の<span class="ic">apprunner.yaml</span>でECSタスク定義・ALB設定・オートスケーリングポリシーを代替。リアルタイム要件のあるソロ運用SaaSでは、運用の簡素化がLambdaのリクエスト単位課金を上回る。</p>
+    </div>
+
+    <div class="dec">
+      <p class="dec-q" data-en>Why raw SQL with parameterized queries instead of an ORM?</p>
+      <p class="dec-q" data-ja>ORMではなくパラメータ化SQLを選んだ理由</p>
+      <p class="dec-a" data-en>RLS requires <span class="ic">set_config</span> calls within transactions — most ORMs cannot express this pattern. Batch inserts use <span class="ic">UNNEST</span> with typed arrays, which ORMs typically cannot generate. The schema is stable with 7 tables; an ORM's migration tooling was the only potential value, handled separately via the SQL schema file.</p>
+      <p class="dec-a" data-ja>RLSにはトランザクション内の<span class="ic">set_config</span>呼び出しが必要 — 多くのORMはこのパターンを表現できない。バッチ挿入は型付き配列の<span class="ic">UNNEST</span>を使用し、ORMでは通常生成不可。7テーブルの安定したスキーマでは、ORMの価値はマイグレーション管理のみ — SQLスキーマファイルで別途対応。</p>
+    </div>
+
+    <div class="dec">
+      <p class="dec-q" data-en>Why server-side aggregation instead of client-side?</p>
+      <p class="dec-q" data-ja>クライアントサイドではなくサーバーサイド集計を選んだ理由</p>
+      <p class="dec-a" data-en>A single upload session can contain 10,000+ face detection records. Sending raw records to the browser would mean megabytes of transfer per dashboard load. The server computes aggregates (age distribution, gender ratios, emotion trends, time profiles) once and returns pre-calculated chart data — typically under 5KB.</p>
+      <p class="dec-a" data-ja>1つのアップロードセッションで10,000件以上の顔検出レコードが発生しうる。生レコードをブラウザに送信するとダッシュボード読み込みごとにメガバイト単位の転送に。サーバーが集計（年齢分布・性別比・感情トレンド・時間帯プロファイル）を1回実行し、事前計算済みのチャートデータを返却 — 通常5KB未満。</p>
+    </div>
+
+    <div class="dec">
+      <p class="dec-q" data-en>Why RLS via session variables instead of application WHERE clauses?</p>
+      <p class="dec-q" data-ja>アプリケーションWHERE句ではなくセッション変数RLSを選んだ理由</p>
+      <p class="dec-a" data-en>Defense in depth. Even if a developer writes a query that omits the <span class="ic">WHERE client_id = $1</span> clause, the database-level RLS policy prevents cross-tenant data leakage. The application sets the session variable once per transaction; PostgreSQL enforces row filtering on every subsequent query automatically.</p>
+      <p class="dec-a" data-ja>多層防御。開発者が<span class="ic">WHERE client_id = $1</span>句を省略したクエリを書いても、データベースレベルのRLSポリシーがテナント間データ漏洩を防止。アプリケーションはトランザクションごとにセッション変数を1回設定し、PostgreSQLが後続の全クエリで自動的に行フィルタリングを適用。</p>
+    </div>
+
+    <div class="dec">
+      <p class="dec-q" data-en>Why in-memory rate limiting instead of Redis?</p>
+      <p class="dec-q" data-ja>Redisではなくインメモリレート制限を選んだ理由</p>
+      <p class="dec-a" data-en>Single App Runner instance — no distributed state required. An in-process <span class="ic">Map</span> with periodic pruning handles the load with zero infrastructure overhead. If horizontal scaling becomes necessary, migration to ElastiCache is straightforward — but current traffic does not justify the cost or operational complexity.</p>
+      <p class="dec-a" data-ja>App Runnerの単一インスタンスで分散状態が不要。定期プルーニング付きのインプセス<span class="ic">Map</span>でインフラオーバーヘッドゼロで対応。水平スケールが必要になればElastiCacheへの移行は容易だが、現在のトラフィックではコスト・運用の複雑さを正当化できない。</p>
+    </div>
+
+    <div class="dec">
+      <p class="dec-q" data-en>Why SSE instead of WebSocket for real-time?</p>
+      <p class="dec-q" data-ja>WebSocketではなくSSEを選んだ理由</p>
+      <p class="dec-a" data-en>Data flows in one direction: device pushes to server, server pushes to dashboard. SSE is simpler to implement, works through HTTP proxies without upgrade negotiation, and reconnects automatically via the browser's <span class="ic">EventSource</span> API. WebSocket's bidirectional capability is unnecessary overhead for this unidirectional use case.</p>
+      <p class="dec-a" data-ja>データは一方向：デバイスがサーバーにプッシュし、サーバーがダッシュボードにプッシュ。SSEは実装がシンプルで、アップグレードネゴシエーションなしでHTTPプロキシを通過し、ブラウザの<span class="ic">EventSource</span> APIで自動再接続。WebSocketの双方向機能はこの単方向ユースケースでは不要なオーバーヘッド。</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ====== S08 — STACK ====== -->
+<section class="sec reveal">
+  <p class="sec-label">07 · <span data-en>Stack</span><span data-ja>技術スタック</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Technologies Used</span>
+    <span data-ja>使用技術一覧</span>
+  </h2>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th data-en>Layer</th><th data-en>Technology</th><th data-en>Role</th>
+        <th data-ja>レイヤー</th><th data-ja>技術</th><th data-ja>役割</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-en>Frontend</td><td data-en>Next.js 16, React 18, TypeScript</td><td data-en>Full-stack framework with strict typing and shared client/server types.</td>
+        <td data-ja>フロントエンド</td><td data-ja>Next.js 16, React 18, TypeScript</td><td data-ja>厳密な型付きフルスタックフレームワーク。クライアント/サーバー型共有。</td>
+      </tr>
+      <tr>
+        <td data-en>Frontend</td><td data-en>Tailwind CSS v4, Recharts</td><td data-en>Utility-first styling. Chart library for analytics visualizations.</td>
+        <td data-ja>フロントエンド</td><td data-ja>Tailwind CSS v4, Recharts</td><td data-ja>ユーティリティファーストCSS。分析チャートライブラリ。</td>
+      </tr>
+      <tr>
+        <td data-en>Backend</td><td data-en>Next.js API Routes, Node.js 22</td><td data-en>Server-side request handling. JWT auth middleware. SSE streaming.</td>
+        <td data-ja>バックエンド</td><td data-ja>Next.js API Routes, Node.js 22</td><td data-ja>サーバーサイドリクエスト処理。JWT認証ミドルウェア。SSEストリーミング。</td>
+      </tr>
+      <tr>
+        <td data-en>Auth</td><td data-en>jose, bcryptjs</td><td data-en>JWT signing/verification (HS256). Password hashing with bcrypt.</td>
+        <td data-ja>認証</td><td data-ja>jose, bcryptjs</td><td data-ja>JWT署名・検証（HS256）。bcryptパスワードハッシュ。</td>
+      </tr>
+      <tr>
+        <td data-en>Database</td><td data-en>PostgreSQL (AWS RDS)</td><td data-en>7 tables with RLS. Parameterized queries via pg driver. Batch UNNEST inserts.</td>
+        <td data-ja>データベース</td><td data-ja>PostgreSQL (AWS RDS)</td><td data-ja>RLS付き7テーブル。pgドライバによるパラメータ化クエリ。UNNEST一括挿入。</td>
+      </tr>
+      <tr>
+        <td data-en>Cloud</td><td data-en>AWS App Runner</td><td data-en>Managed compute with auto-scaling, TLS termination, and health checks.</td>
+        <td data-ja>クラウド</td><td data-ja>AWS App Runner</td><td data-ja>オートスケーリング・TLS終端・ヘルスチェック付きマネージドコンピュート。</td>
+      </tr>
+      <tr>
+        <td data-en>Cloud</td><td data-en>AWS SES v2, Secrets Manager, EventBridge</td><td data-en>Email delivery, secure credential storage, scheduled cron triggers.</td>
+        <td data-ja>クラウド</td><td data-ja>AWS SES v2, Secrets Manager, EventBridge</td><td data-ja>メール配信、認証情報管理、定期ジョブ発火。</td>
+      </tr>
+      <tr>
+        <td data-en>Billing</td><td data-en>Stripe</td><td data-en>Webhook-driven subscription management. Plan gating (Basic/Pro).</td>
+        <td data-ja>課金</td><td data-ja>Stripe</td><td data-ja>Webhookドリブンのサブスクリプション管理。プランゲーティング（Basic/Pro）。</td>
+      </tr>
+      <tr>
+        <td data-en>Data</td><td data-en>PapaParse</td><td data-en>CSV/DAT parsing with format detection and edge case handling.</td>
+        <td data-ja>データ</td><td data-ja>PapaParse</td><td data-ja>フォーマット検出・エッジケース処理付きCSV/DAT解析。</td>
+      </tr>
+      <tr>
+        <td data-en>Tooling</td><td data-en>ESLint, PostCSS, TypeScript strict</td><td data-en>Static analysis, CSS processing, compile-time type safety.</td>
+        <td data-ja>ツール</td><td data-ja>ESLint, PostCSS, TypeScript strict</td><td data-ja>静的解析、CSS処理、コンパイル時型安全性。</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+
+<!-- ====== S09 — SECURITY ====== -->
+<section class="sec reveal">
+  <p class="sec-label">08 · <span data-en>Security &amp; Data Design</span><span data-ja>セキュリティとデータ設計</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Defense in depth, not afterthought</span>
+    <span data-ja>後付けではなく、多層防御</span>
+  </h2>
+  <p class="prose" data-en>Security was designed into the architecture from the first commit, not bolted on before launch.</p>
+  <p class="prose" data-ja>セキュリティは初回コミットからアーキテクチャに組み込んだものであり、リリース前の後付けではない。</p>
+
+  <div class="sec-grid">
+    <div class="sec-item">
+      <p class="sec-item-label" data-en>Authentication</p>
+      <p class="sec-item-label" data-ja>認証</p>
+      <p class="sec-item-val" data-en>JWT signed with HS256 via jose library. Stored in httpOnly secure cookies with SameSite=Lax. 7-day expiry. Separate admin query path bypasses RLS only for auth endpoints.</p>
+      <p class="sec-item-val" data-ja>joseライブラリでHS256署名のJWT。SameSite=LaxのhttpOnlyセキュアクッキーに格納。有効期限7日間。認証エンドポイントのみRLSをバイパスする管理クエリパス。</p>
+    </div>
+    <div class="sec-item">
+      <p class="sec-item-label" data-en>Tenant Isolation</p>
+      <p class="sec-item-label" data-ja>テナント分離</p>
+      <p class="sec-item-val" data-en>PostgreSQL Row-Level Security via session variables. Every tenant-scoped query sets app.current_user_email via set_config within a transaction. RLS policies enforce row filtering regardless of application-level query logic.</p>
+      <p class="sec-item-val" data-ja>セッション変数によるPostgreSQL Row-Level Security。テナントスコープの全クエリがトランザクション内でset_configによりapp.current_user_emailを設定。RLSポリシーがアプリケーションレベルのクエリロジックに依存せず行フィルタリングを適用。</p>
+    </div>
+    <div class="sec-item">
+      <p class="sec-item-label" data-en>Injection Prevention</p>
+      <p class="sec-item-label" data-ja>インジェクション防止</p>
+      <p class="sec-item-val" data-en>Parameterized queries exclusively ($1, $2...) via pg driver. No string concatenation in SQL. All API inputs validated before processing — type checks on body fields, file size limits, filename sanitization.</p>
+      <p class="sec-item-val" data-ja>pgドライバによるパラメータ化クエリのみ（$1, $2...）。SQLでの文字列結合なし。全APIインプットを処理前にバリデーション — ボディフィールドの型チェック、ファイルサイズ制限、ファイル名サニタイズ。</p>
+    </div>
+    <div class="sec-item">
+      <p class="sec-item-label" data-en>Rate Limiting</p>
+      <p class="sec-item-label" data-ja>レート制限</p>
+      <p class="sec-item-val" data-en>Login: 5 attempts per IP per 15 minutes. Upload: 20 per hour per user. Weather API: 30 per hour per IP. In-memory sliding window with auto-pruning. Retry-After header on 429 responses.</p>
+      <p class="sec-item-val" data-ja>ログイン：IPあたり15分間5回。アップロード：ユーザーあたり1時間20回。天気API：IPあたり1時間30回。自動プルーニング付きインメモリスライディングウィンドウ。429レスポンスにRetry-Afterヘッダ。</p>
+    </div>
+    <div class="sec-item">
+      <p class="sec-item-label" data-en>HTTP Headers</p>
+      <p class="sec-item-label" data-ja>HTTPヘッダ</p>
+      <p class="sec-item-val" data-en>HSTS with 2-year max-age, includeSubDomains, preload. X-Frame-Options: DENY. X-Content-Type-Options: nosniff. Permissions-Policy denies camera, microphone, and geolocation. Server header suppressed.</p>
+      <p class="sec-item-val" data-ja>HSTS（max-age 2年、includeSubDomains、preload）。X-Frame-Options: DENY。X-Content-Type-Options: nosniff。Permissions-Policyでカメラ・マイク・位置情報を拒否。Serverヘッダ非公開。</p>
+    </div>
+    <div class="sec-item">
+      <p class="sec-item-label" data-en>Secrets Management</p>
+      <p class="sec-item-label" data-ja>シークレット管理</p>
+      <p class="sec-item-val" data-en>AWS Secrets Manager stores DB password, JWT secret, API keys, and cron secret. Referenced in apprunner.yaml via SSM parameter store. Zero secrets in source code, environment files, or build artifacts.</p>
+      <p class="sec-item-val" data-ja>AWS Secrets ManagerにDBパスワード・JWTシークレット・APIキー・cronシークレットを格納。apprunner.yamlでSSMパラメータストア経由で参照。ソースコード・環境ファイル・ビルド成果物にシークレットゼロ。</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== S10 — TIMELINE ====== -->
+<section class="sec reveal">
+  <p class="sec-label">09 · <span data-en>Timeline</span><span data-ja>開発タイムライン</span></p>
+  <h2 class="sec-h2">
+    <span data-en>Development progression</span>
+    <span data-ja>開発の工程</span>
+  </h2>
+  <div class="tl-list">
+    <div class="tl-item">
+      <span class="tl-date" data-en>Early Feb 2026</span>
+      <span class="tl-date" data-ja>2026年2月上旬</span>
+      <span class="tl-milestone" data-en>Requirements gathering, database schema design (7 tables, RLS policies), AWS infrastructure setup (App Runner, RDS, SES)</span>
+      <span class="tl-milestone" data-ja>要件整理、DBスキーマ設計（7テーブル・RLSポリシー）、AWSインフラ構築（App Runner・RDS・SES）</span>
+    </div>
+    <div class="tl-item">
+      <span class="tl-date" data-en>Mid–Late Feb</span>
+      <span class="tl-date" data-ja>2月中旬〜下旬</span>
+      <span class="tl-milestone" data-en>Auth system (JWT, rate limiting, password reset), upload pipeline (DAT parser, emotion normalizer, batch UNNEST insert)</span>
+      <span class="tl-milestone" data-ja>認証システム（JWT・レート制限・パスワードリセット）、アップロードパイプライン（DATパーサー・感情正規化・UNNESTバッチ挿入）</span>
+    </div>
+    <div class="tl-item">
+      <span class="tl-date" data-en>Early–Mid Mar</span>
+      <span class="tl-date" data-ja>3月上旬〜中旬</span>
+      <span class="tl-milestone" data-en>Dashboard analytics (6 aggregators, 4 chart types, KPI comparison with trends), sales POS data integration</span>
+      <span class="tl-milestone" data-ja>ダッシュボード分析（6集計器・4チャート・トレンド付きKPI比較）、売上POSデータ連携</span>
+    </div>
+    <div class="tl-item">
+      <span class="tl-date" data-en>Late Mar – Apr</span>
+      <span class="tl-date" data-ja>3月下旬〜4月</span>
+      <span class="tl-milestone" data-en>Real-time SSE streaming, multi-session comparison, Stripe billing integration with Pro feature gating</span>
+      <span class="tl-milestone" data-ja>リアルタイムSSEストリーミング、マルチセッション比較、StripeによるPro機能ゲーティング</span>
+    </div>
+    <div class="tl-item">
+      <span class="tl-date" data-en>Apr – Early May</span>
+      <span class="tl-date" data-ja>4月〜5月上旬</span>
+      <span class="tl-milestone" data-en>Automated email reports (EventBridge + SES), anomaly detection, dark mode, CSV/PDF export</span>
+      <span class="tl-milestone" data-ja>自動メールレポート（EventBridge + SES）、異常検知、ダークモード、CSV/PDFエクスポート</span>
+    </div>
+    <div class="tl-item">
+      <span class="tl-date" data-en>May 2026</span>
+      <span class="tl-date" data-ja>2026年5月</span>
+      <span class="tl-milestone" data-en>Security hardening (HTTP headers, secrets audit), production deployment, client onboarding</span>
+      <span class="tl-milestone" data-ja>セキュリティ強化（HTTPヘッダ・シークレット監査）、本番デプロイ、クライアントオンボーディング</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== FOOTER ====== -->
+<footer>
+  <p data-en>Dmitry So — Design, architecture, implementation, and deployment — 2026</p>
+  <p data-ja>Dmitry So — 設計・アーキテクチャ・実装・デプロイ — 2026年</p>
+</footer>
+
+
+<script>
+function setLang(lang) {
+  document.body.className = 'lang-' + lang;
+  document.querySelectorAll('.lb').forEach(function(b) {
+    b.classList.toggle('on', b.textContent.trim() === (lang === 'en' ? 'EN' : 'JA'));
+  });
+}
+
+var ro = new IntersectionObserver(
+  function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) e.target.classList.add('on');
+    });
+  },
+  { threshold: 0.04 }
+);
+document.querySelectorAll('.reveal').forEach(function(el) { ro.observe(el); });
+</script>
+</body>
+</html>
